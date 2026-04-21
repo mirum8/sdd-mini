@@ -227,7 +227,7 @@ Show a summary: chosen stack, phase titles, and one-line checkpoints. Then `AskU
    > Готово. План — в `PROJECT.md`. Запусти `/sdd-impl` — построю Фазу 1 и подниму приложение в браузере.
 
    For `handoff` stacks:
-   > Готово. План — в `PROJECT.md`, там же весь рецепт стека. Запусти `/sdd-impl` — скажу, что дальше строить вручную (SDD для этого стека scaffold не автоматизирует, но рецепт уже у тебя).
+   > Готово. План — в `PROJECT.md`, там же вся инструкция по сборке под этот стек. Запусти `/sdd-impl` — скажу, что дальше строить вручную (SDD для этого стека scaffold не автоматизирует, но инструкция уже у тебя).
 
 Options 1 and 2 can be chosen as many times as the user wants — versioning protects previous drafts. **Only «Поехали, строим!» hands off control.**
 

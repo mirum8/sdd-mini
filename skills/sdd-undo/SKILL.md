@@ -21,9 +21,13 @@ A vibe coder doesn't know about `git reset --hard` and shouldn't have to. Someti
 
 ## Steps
 
-### 1. Doctor (git-only)
+### 1. Sanity check git
 
-Run `"$HOME/.claude/scripts/sdd-doctor.sh"`. Only the git-related checks matter here — if Docker is down, we can still revert (`docker compose restart` at the end will be a no-op, which is fine; warn the user). If git isn't installed or we aren't in a repo, stop with the Russian message:
+`git revert` needs git + a repo. Don't run the full doctor — just:
+
+    git rev-parse --is-inside-work-tree >/dev/null 2>&1
+
+If that fails, stop with the Russian message:
 
 > Сначала нужен git и репозиторий. Запусти `git init` и сделай хоть один коммит.
 

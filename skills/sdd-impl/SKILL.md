@@ -40,21 +40,21 @@ Both sub-modes share a common tail: tests + 100% coverage → verification → r
 
 ## Common preamble (every run)
 
-1. **Doctor.** Run `$(dirname "$0")/sdd-doctor.sh` (the doctor ships inside this skill — `~/.claude/skills/sdd-impl/sdd-doctor.sh`). If the last line of output is not `SDD_DOCTOR: ok` and not `SDD_DOCTOR: warnings=<N>`, stop and surface the "Сначала почини вот это" block from the doctor output.
-2. **PROJECT.md present?** If not, say in Russian: «Сначала запусти `/sdd-idea`, чтобы появился план. `/sdd-impl` реализует фазы по готовому `PROJECT.md`.» Then exit.
-3. **Parse the stack.** Find the `## Стек` section in PROJECT.md. Extract `name` and `impl_mode`. If either is missing, say in Russian: «В `PROJECT.md` нет секции `## Стек` с полями `name:` и `impl_mode:`. Похоже, план из старой версии SDD. Запусти `/sdd-idea` с опцией «Начать заново», чтобы обновить план.» Then exit.
-4. **Status header.** Find the first phase with any unchecked `- [ ]` task. Print in Russian:
+1. **PROJECT.md present?** If not, say in Russian: «Сначала запусти `/sdd-idea`, чтобы появился план. `/sdd-impl` реализует фазы по готовому `PROJECT.md`.» Then exit.
+2. **Parse the stack.** Find the `## Стек` section in PROJECT.md. Extract `name` and `impl_mode`. If either is missing, say in Russian: «В `PROJECT.md` нет секции `## Стек` с полями `name:` и `impl_mode:`. Похоже, план из старой версии SDD. Запусти `/sdd-idea` с опцией «Начать заново», чтобы обновить план.» Then exit.
+3. **Status header.** Find the first phase with any unchecked `- [ ]` task. Print in Russian:
 
         <Project name>
         Стек: <stack name> (<impl_mode>)
         Сделано: <N>/<total> фаз
         Следующая: Фаза <K> — <title>
 
-5. **All phases done?** Congratulate the user (Russian) and suggest `/sdd-feature` for extensions.
-6. **Dirty git (feature mode).** If `git status --porcelain` is non-empty, `AskUserQuestion`:
+4. **All phases done?** Congratulate the user (Russian) and suggest `/sdd-feature` for extensions.
+5. **Dirty git (feature mode).** If `git status --porcelain` is non-empty, `AskUserQuestion`:
    - Label «Продолжить с первой незакрытой задачи» → leave changes as-is, continue.
    - Label «Откатить изменения и начать фазу заново» → run `git checkout -- .` (only after explicit confirmation), then continue.
-7. **Snapshot the plan.** If this phase hasn't been snapshotted yet, copy `PROJECT.md` → `PROJECT.v<N>.md` (N = next free integer). Snapshot happens once per phase, not per run. Indicator that this run is the start of a phase: none of the phase's tasks are marked `- [x]` yet.
+6. **Snapshot the plan.** If this phase hasn't been snapshotted yet, copy `PROJECT.md` → `PROJECT.v<N>.md` (N = next free integer). Snapshot happens once per phase, not per run. Indicator that this run is the start of a phase: none of the phase's tasks are marked `- [x]` yet.
+7. **Doctor — setup mode only.** If this is setup mode (scaffold stack + no project on disk yet — see detection below), run `"$HOME/.claude/skills/sdd-impl/scripts/sdd-doctor.sh"` now. If the last line is not `SDD_DOCTOR: ok` or `SDD_DOCTOR: warnings=<N>`, surface the "Сначала почини вот это" block and exit. In feature mode and in handoff mode, skip this — the environment was validated at the first run; if something is actually broken later, let the real `docker compose` / `git` command fail with its concrete error, then suggest running the doctor manually for diagnosis.
 
 ## Handoff mode (impl_mode: handoff)
 

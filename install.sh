@@ -3,7 +3,7 @@
 #
 # Copies:
 #   skills/sdd-idea      → ~/.claude/skills/sdd-idea
-#   skills/sdd-impl      → ~/.claude/skills/sdd-impl    (bundles sdd-doctor.sh)
+#   skills/sdd-impl      → ~/.claude/skills/sdd-impl    (bundles scripts/sdd-doctor.sh)
 #   skills/sdd-undo      → ~/.claude/skills/sdd-undo
 #   skills/sdd-feature   → ~/.claude/skills/sdd-feature
 #
@@ -21,9 +21,9 @@ dst_skills="$HOME/.claude/skills"
 backup_root="$HOME/.claude/sdd-backups"
 
 # --- preflight ----------------------------------------------------
-if [ ! -d "$src_skills" ] || [ ! -f "$src_skills/sdd-impl/sdd-doctor.sh" ]; then
+if [ ! -d "$src_skills" ] || [ ! -f "$src_skills/sdd-impl/scripts/sdd-doctor.sh" ]; then
   echo "✗ Структура репозитория неожиданная."
-  echo "  Ожидал: $src_skills и $src_skills/sdd-impl/sdd-doctor.sh"
+  echo "  Ожидал: $src_skills и $src_skills/sdd-impl/scripts/sdd-doctor.sh"
   echo "  Запускай install.sh из корня репозитория SDD4beginners."
   exit 1
 fi
@@ -71,7 +71,7 @@ for skill in sdd-idea sdd-impl sdd-undo sdd-feature; do
 done
 
 # Make sure the doctor script is executable after copy.
-dst_doctor="$dst_skills/sdd-impl/sdd-doctor.sh"
+dst_doctor="$dst_skills/sdd-impl/scripts/sdd-doctor.sh"
 if [ -f "$dst_doctor" ]; then
   chmod +x "$dst_doctor"
 fi

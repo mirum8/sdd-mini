@@ -22,11 +22,7 @@ Extends an existing SDD project with a new feature: short interview to understan
 
 ## Steps
 
-### 1. Doctor
-
-Run `"$HOME/.claude/skills/sdd-impl/sdd-doctor.sh"`. Blockers → stop. Environment is critical: without Docker the user can't build the phase later; without git they can't commit. (Stacks in `handoff` mode may still need Docker skipped — for those, a warning rather than a blocker is fine; check PROJECT.md's `## Стек / impl_mode` and relax the Docker check if `handoff`.)
-
-### 2. Read the current state
+### 1. Read the current state
 
 - `PROJECT.md` — spec + stack recipe + phase list with checkboxes.
 - If missing, print in Russian:
@@ -43,7 +39,7 @@ Run `"$HOME/.claude/skills/sdd-impl/sdd-doctor.sh"`. Blockers → stop. Environm
   - **In-progress phase:** mix of checked and unchecked tasks.
   - **Future phases:** all unchecked.
 
-### 3. Print a status header
+### 2. Print a status header
 
 Show the user you understand the current state. Russian:
 
@@ -51,7 +47,7 @@ Show the user you understand the current state. Russian:
     Сейчас в приложении: <1–2 lines describing what's already built, read from code>
     В плане: <N> фаз всего, <M> завершены, <K> в работе, <L> ещё не начаты.
 
-### 4. Interview — 2–3 `AskUserQuestion` turns
+### 3. Interview — 2–3 `AskUserQuestion` turns
 
 Shorter than `/sdd-idea` because stack, audience, and core decisions are already made. Focus on:
 
@@ -63,7 +59,7 @@ Shorter than `/sdd-idea` because stack, audience, and core decisions are already
 
 Use the code context: propose answer options that cite actual existing models/pages. "Add a `category` field to the existing `Recipe` model?" is far more useful than "new model or new field?".
 
-### 5. Conflicts and unfinished phases
+### 4. Conflicts and unfinished phases
 
 Before writing the plan, handle two edges:
 
@@ -86,7 +82,7 @@ If the new feature requires changing existing models / views / templates, those 
 
 Put structural changes at the *start* of the first new phase so the app stays runnable when `/sdd-impl` applies them.
 
-### 6. Backup and write
+### 5. Backup and write
 
 - Copy `PROJECT.md` → `PROJECT.v<N>.md` (N = next free integer).
 - Rewrite `PROJECT.md`:
@@ -104,7 +100,7 @@ Put structural changes at the *start* of the first new phase so the app stays ru
   - Update the spec sections at the top of `PROJECT.md` if the feature really changes the picture (What This Is, How It Works, Data). Add — yes. Remove descriptions of already-built features — no.
   - If there are unresolved questions, add them under "Открытые вопросы".
 
-### 7. Report
+### 6. Report
 
 In Russian:
 
@@ -121,7 +117,7 @@ In Russian:
 
 Then `AskUserQuestion`:
 - Label «Начать строить сейчас» → tell the user to run `/sdd-impl` (skills don't invoke each other).
-- Label «Подправить план» → return to Step 4 or 5, focused on what the user wants changed.
+- Label «Подправить план» → return to Step 3 or 4, focused on what the user wants changed.
 - Label «Готово, потом» → exit.
 
 ## Rules

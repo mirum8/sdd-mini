@@ -4,14 +4,15 @@ description: >
   Planning-only skill for SDD projects. Turns a rough idea into a single
   PROJECT.md that holds both the spec AND the phased implementation plan,
   with the right stack picked for the idea (web, SPA, mobile, desktop,
-  CLI, game). Trigger on "/sdd-idea", "I have an idea", "let's plan an
-  app", "help me spec this", "new project", as well as Russian variants:
-  "хочу сделать приложение", "давай спроектируем", "накидаем план",
-  "новый проект", "спроектируй", "составь план". Invoke this skill (not
-  a plain text reply) whenever the user is clearly scoping a new project
-  and no PROJECT.md exists yet. Do NOT write code, do NOT run the doctor
-  script, do NOT create scaffolds — the only output is PROJECT.md. Hands
-  off to /sdd-impl for actual building.
+  CLI, game). **Only runs when the user explicitly invokes `/sdd-idea`**
+  (with or without accompanying text, e.g. `/sdd-idea` or `/sdd-idea
+  хочу сделать трекер книг`). Do NOT auto-invoke on natural-language
+  hints like "I have an idea", "let's plan an app", "new project",
+  "хочу сделать приложение", "давай спроектируем", etc. — those phrases
+  alone are not enough; wait for the explicit slash command. Do NOT
+  write code, do NOT run the doctor script, do NOT create scaffolds —
+  the only output is PROJECT.md. Hands off to /sdd-impl for actual
+  building.
 ---
 
 # sdd-idea — idea → PROJECT.md
@@ -46,6 +47,16 @@ Either way the user gets a complete, self-contained `PROJECT.md`.
 The user is a vibe coder: building an app for themselves or a small group, not a professional developer. Speak Russian informally ("ты", not "вы"), friendly, minimal jargon. Short sentences. Anglicisms like "стек", "фича", "деплой" are fine when they read natural.
 
 All user-facing output and everything written into `PROJECT.md` is Russian. Code and identifiers stay English.
+
+## Step 0 — gather context
+
+Before anything else, collect context the user has already put in front of you:
+
+1. **`./docs/` directory — always read it.** If `./docs/` exists in cwd, list its contents and read every text file in it (recursively; skip binaries and anything obviously huge). These are the user's own notes, references, sketches, or drafts for the idea — treat them as authoritative input alongside the chat messages. During the interview, cite specifics from docs ("в `docs/notes.md` ты упомянул X — это всё ещё актуально?") instead of asking questions the docs already answer. Carry what you learned from docs into the stack pick and into `PROJECT.md` (the `## Что это`, `## Как это работает`, and `## Данные` sections especially). If `./docs/` is absent, skip silently.
+
+2. **Text passed with the trigger.** The skill can be invoked as `/sdd-idea <описание идеи>` or just `/sdd-idea` on its own. If there is accompanying text, treat it as the user's opening pitch — start the interview from there, don't re-ask "что хочешь построить?". If there is no text, open with one broad question.
+
+Then go to Step 1.
 
 ## Step 1 — existing PROJECT.md
 

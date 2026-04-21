@@ -3,11 +3,13 @@ name: sdd-feature
 description: >
   Extend an existing SDD project with a new feature. Interviews the user
   about the feature (2–3 turns), then appends new phases to PROJECT.md.
-  The 100% coverage rule still applies to each new phase. Trigger on
-  "/sdd-feature", "add a feature", "new feature", "extend", and Russian
-  variants: "добавь фичу", "хочу добавить", "расширь", "ещё одна фишка",
-  "давай добавим". Does NOT write code — only extends the plan. After
-  this, the user runs /sdd-impl to build the new phases.
+  The 100% coverage rule still applies to each new phase. **Only runs
+  when the user explicitly invokes `/sdd-feature`.** Do NOT auto-invoke
+  on phrases like "add a feature", "new feature", "extend", "добавь
+  фичу", "хочу добавить", "расширь", etc. — those phrases alone are not
+  enough; wait for the explicit slash command. Does NOT write code —
+  only extends the plan. After this, the user runs /sdd-impl to build
+  the new phases.
 ---
 
 # sdd-feature — append new phases to an existing plan

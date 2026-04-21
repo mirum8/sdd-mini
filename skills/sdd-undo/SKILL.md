@@ -4,11 +4,12 @@ description: >
   Safely undo the last SDD phase. Reverts the most recent `phase N: ...`
   commit (plus any trailing review commits), unchecks the affected tasks
   in PROJECT.md, and restarts the Docker container so the user can retry
-  the phase. Trigger on "/sdd-undo", "rollback", "undo last phase",
-  "undo that", and Russian variants: "откати", "отмени", "верни как было",
-  "хочу переделать фазу", "эта фаза получилась плохо". Uses `git revert`
-  (never `reset`) — history stays clean and the revert itself is a commit
-  the user can see and undo again.
+  the phase. **Only runs when the user explicitly invokes `/sdd-undo`.**
+  Do NOT auto-invoke on phrases like "rollback", "undo last phase",
+  "undo that", "откати", "отмени", "верни как было", etc. — those
+  phrases alone are not enough; wait for the explicit slash command.
+  Uses `git revert` (never `reset`) — history stays clean and the
+  revert itself is a commit the user can see and undo again.
 ---
 
 # sdd-undo — safe rollback of the last phase

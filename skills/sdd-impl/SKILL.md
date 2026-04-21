@@ -6,14 +6,14 @@ description: >
   tasks, writes unit tests until coverage hits 100% on changed files,
   verifies via HTTP + regression against earlier phases, invokes
   frontend-design for any UI work, then runs simplify and security-review
-  on the diff before committing `phase N: <title>`. Trigger on
-  "/sdd-impl", "next phase", "continue", "implement", "keep building",
-  "build", and Russian variants: "построй фазу", "следующая фаза",
-  "продолжай", "давай строить", "начнём кодить", "реализуй". Always
-  invoke this skill (not inline code) when PROJECT.md exists and the user
-  wants to move forward. For scaffold-mode stacks (django-htmx, nextjs)
-  Phase 1 is automated; for handoff-mode stacks it prints the next steps
-  and records a marker commit. Every run ends with one commit.
+  on the diff before committing `phase N: <title>`. **Only runs when the
+  user explicitly invokes `/sdd-impl`.** Do NOT auto-invoke on phrases
+  like "next phase", "continue", "implement", "build", "keep building",
+  "построй фазу", "следующая фаза", "продолжай", etc. — those phrases
+  alone are not enough; wait for the explicit slash command. For
+  scaffold-mode stacks (django-htmx, nextjs) Phase 1 is automated; for
+  handoff-mode stacks it prints the next steps and records a marker
+  commit. Every run ends with one commit.
 ---
 
 # sdd-impl — build the next phase

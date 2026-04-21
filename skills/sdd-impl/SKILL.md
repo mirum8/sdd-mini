@@ -20,6 +20,19 @@ description: >
 
 Reads `PROJECT.md`, finds the first phase with an unchecked task, implements it end-to-end (code + tests + verification + commit). PROJECT.md is self-contained — it carries the full stack recipe in its `## Стек` section, so this skill never opens a reference file.
 
+## Plan mode (mandatory first action)
+
+The first thing this skill does is switch to plan mode. Call `EnterPlanMode` before any other step.
+
+Inside plan mode:
+- Run the **Common preamble** below (all reads: parse `PROJECT.md`, check git status, detect setup vs feature sub-mode, look at the scaffold on disk).
+- Compose a concrete plan for the next phase: files to create or modify, tests to add, commands to run (`docker compose`, migrations, test runners), expected commit message.
+- Present that plan via `ExitPlanMode` for the user to approve.
+
+Only after the user accepts the plan and plan mode exits do you perform file writes, run commands, run `simplify` / `security-review`, and make the `phase N: <title>` commit.
+
+If the user rejects the plan, revise it and call `ExitPlanMode` again with the updated plan. Do not leave plan mode unilaterally.
+
 ## How dispatch works
 
 `PROJECT.md` has a `## Стек` section with two keys this skill reads:

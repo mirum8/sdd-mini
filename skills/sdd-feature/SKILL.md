@@ -16,6 +16,21 @@ description: >
 
 Extends an existing SDD project with a new feature: short interview to understand what we're adding, then write new phases into `PROJECT.md`. **No code is written.** After this, the user runs `/sdd-impl`, which builds the new phases the same way it built the original ones.
 
+## Plan mode (mandatory first action)
+
+The first thing this skill does is switch to plan mode. Call `EnterPlanMode` before any other step.
+
+The whole interview and phase design happen inside plan mode:
+- Read current state (`PROJECT.md`, real code per the stack's file list).
+- Run the 2–3 interview turns via `AskUserQuestion`.
+- Resolve conflicts and unfinished phases (Step 4 below).
+- Compose the new phases **in memory only** — do not touch `PROJECT.md` yet.
+- Present the full proposal (new phases with goals, tasks, and any spec updates) via `ExitPlanMode` for the user to approve.
+
+Only after the user accepts the plan and plan mode exits do you back up `PROJECT.md` to `PROJECT.v<N>.md` and write the new phases into `PROJECT.md`.
+
+If the user rejects the plan, revise it and call `ExitPlanMode` again with the updated proposal. Do not leave plan mode unilaterally.
+
 ## Why this is a separate skill (not just `/sdd-idea` again)
 
 `/sdd-idea` is from scratch — there's no project yet. `/sdd-feature` is for a project that already lives and needs to be extended without breaking what's done. Two nuances:

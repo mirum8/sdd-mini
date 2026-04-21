@@ -19,6 +19,12 @@ bash -n install.sh                                 # syntax-check the installer
 
 There is no test suite, linter, or build. Validation is manual: run `install.sh`, then exercise a skill in a scratch directory.
 
+## Workflow when editing skills
+
+**Always load `/skill-creator` before touching anything under `skills/`.** That includes `SKILL.md` bodies, frontmatter (`description` affects triggering), `references/*.md`, and `scripts/*`. The skill-creator provides the evaluation loop (snapshot old version → test cases → with-skill vs baseline → iterate) and the description-optimization tooling — skipping it means editing prompts blind. Load it at the start of the session, not only at commit time.
+
+This applies to every change, big or small: renaming a stack, tweaking a description, adding a reference file, fixing a step in a SKILL.md. Load `/skill-creator`, then make the change.
+
 ## Architecture
 
 ### Skills follow the Claude Code skill convention

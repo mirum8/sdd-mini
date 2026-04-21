@@ -24,7 +24,7 @@ backup_root="$HOME/.claude/sdd-backups"
 if [ ! -d "$src_skills" ] || [ ! -f "$src_skills/sdd-impl/scripts/sdd-doctor.sh" ]; then
   echo "✗ Структура репозитория неожиданная."
   echo "  Ожидал: $src_skills и $src_skills/sdd-impl/scripts/sdd-doctor.sh"
-  echo "  Запускай install.sh из корня репозитория SDD4beginners."
+  echo "  Запускай install.sh из корня репозитория SDD-mini."
   exit 1
 fi
 

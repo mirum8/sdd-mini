@@ -1,4 +1,4 @@
-# SDD для начинающих
+# SDD-mini
 
 **SDD (Spec-Driven Development) для vibe coders** — четыре скилла для Claude Code, которые превращают идею в MVP: одно длинное интервью, затем серия итераций реализации — один коммит на фазу, тесты на каждое изменение.
 
@@ -132,7 +132,7 @@ Claude Code — это терминальный клиент для работы
 
 ```bash
 git clone <url-этого-репозитория>
-cd SDD4beginners
+cd SDD-mini
 ./install.sh
 ```
 
@@ -273,7 +273,7 @@ Claude задаст 2–3 вопроса (где в UI, как выглядит 
 ### Обновить SDD
 
 ```bash
-cd SDD4beginners
+cd SDD-mini
 git pull
 ./install.sh
 ```
@@ -295,7 +295,7 @@ rm -f ~/.claude/scripts/sdd-doctor.sh
 ## Структура репозитория
 
 ```
-SDD4beginners/
+SDD-mini/
 ├── README.md                  ← этот файл
 ├── install.sh                 ← копирует скиллы в ~/.claude/
 └── skills/

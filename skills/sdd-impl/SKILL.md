@@ -1,0 +1,260 @@
+---
+name: sdd-impl
+description: >
+  Build the next unchecked phase of an SDD project. Runs the doctor, reads
+  the stack recipe from PROJECT.md, executes Phase 1 scaffold or feature
+  tasks, writes unit tests until coverage hits 100% on changed files,
+  verifies via HTTP + regression against earlier phases, invokes
+  frontend-design for any UI work, then runs simplify and security-review
+  on the diff before committing `phase N: <title>`. Trigger on
+  "/sdd-impl", "next phase", "continue", "implement", "keep building",
+  "build", and Russian variants: "построй фазу", "следующая фаза",
+  "продолжай", "давай строить", "начнём кодить", "реализуй". Always
+  invoke this skill (not inline code) when PROJECT.md exists and the user
+  wants to move forward. For scaffold-mode stacks (django-htmx, nextjs)
+  Phase 1 is automated; for handoff-mode stacks it prints the next steps
+  and records a marker commit. Every run ends with one commit.
+---
+
+# sdd-impl — build the next phase
+
+Reads `PROJECT.md`, finds the first phase with an unchecked task, implements it end-to-end (code + tests + verification + commit). PROJECT.md is self-contained — it carries the full stack recipe in its `## Стек` section, so this skill never opens a reference file.
+
+## How dispatch works
+
+`PROJECT.md` has a `## Стек` section with two keys this skill reads:
+
+- `name:` — the stack id (e.g. `django-htmx`, `nextjs`, `flutter`).
+- `impl_mode:` — `scaffold` or `handoff`.
+
+`scaffold` means /sdd-impl executes Phase 1 from the recipe in `### Структура проекта (Фаза 1)` (and later phases similarly). `handoff` means /sdd-impl prints what the user should build manually, makes a marker commit, and exits. Only two stacks are scaffold-automated today: `django-htmx` and `nextjs`. Everything else is handoff.
+
+Two sub-modes of `scaffold` (decided by disk state, not PROJECT.md):
+
+- **Setup mode** — PROJECT.md exists but the project hasn't been scaffolded yet. Always Phase 1. The skill follows the recipe in `### Структура проекта (Фаза 1)` of PROJECT.md.
+- **Feature mode** — scaffold already exists and at least one phase is done. The skill implements the tasks of the current phase (new views / models / forms / templates / components / tests per the chosen stack).
+
+Detection: inspect cwd. Django setup mode indicator: no `manage.py` and no `docker-compose.yml`. Next.js setup mode indicator: no `package.json`. For handoff stacks, setup mode is never entered.
+
+Both sub-modes share a common tail: tests + 100% coverage → verification → regression → `simplify` → `security-review` → final verification → commit.
+
+## Common preamble (every run)
+
+1. **Doctor.** Run `$(dirname "$0")/sdd-doctor.sh` (the doctor ships inside this skill — `~/.claude/skills/sdd-impl/sdd-doctor.sh`). If the last line of output is not `SDD_DOCTOR: ok` and not `SDD_DOCTOR: warnings=<N>`, stop and surface the "Сначала почини вот это" block from the doctor output.
+2. **PROJECT.md present?** If not, say in Russian: «Сначала запусти `/sdd-idea`, чтобы появился план. `/sdd-impl` реализует фазы по готовому `PROJECT.md`.» Then exit.
+3. **Parse the stack.** Find the `## Стек` section in PROJECT.md. Extract `name` and `impl_mode`. If either is missing, say in Russian: «В `PROJECT.md` нет секции `## Стек` с полями `name:` и `impl_mode:`. Похоже, план из старой версии SDD. Запусти `/sdd-idea` с опцией «Начать заново», чтобы обновить план.» Then exit.
+4. **Status header.** Find the first phase with any unchecked `- [ ]` task. Print in Russian:
+
+        <Project name>
+        Стек: <stack name> (<impl_mode>)
+        Сделано: <N>/<total> фаз
+        Следующая: Фаза <K> — <title>
+
+5. **All phases done?** Congratulate the user (Russian) and suggest `/sdd-feature` for extensions.
+6. **Dirty git (feature mode).** If `git status --porcelain` is non-empty, `AskUserQuestion`:
+   - Label «Продолжить с первой незакрытой задачи» → leave changes as-is, continue.
+   - Label «Откатить изменения и начать фазу заново» → run `git checkout -- .` (only after explicit confirmation), then continue.
+7. **Snapshot the plan.** If this phase hasn't been snapshotted yet, copy `PROJECT.md` → `PROJECT.v<N>.md` (N = next free integer). Snapshot happens once per phase, not per run. Indicator that this run is the start of a phase: none of the phase's tasks are marked `- [x]` yet.
+
+## Handoff mode (impl_mode: handoff)
+
+If `impl_mode: handoff`, do not try to scaffold or run framework commands. Instead:
+
+1. Print this message in Russian, substituting the stack name:
+
+        SDD для стека <stack name> Phase 1 не автоматизирует —
+        для этой задачи нужен тулчейн на хосте (Rust / Android SDK /
+        Xcode / свой .venv и т.п.), а SDD работает только через Docker + git.
+
+        Но весь рецепт уже в PROJECT.md:
+          - раздел «## Стек / ### Структура проекта (Фаза 1)» — что создать.
+          - раздел «## Стек / ### Как тестировать» — как гонять тесты.
+
+        Дальше запусти Claude в этом каталоге и попроси построить
+        Фазу 1 по PROJECT.md — он прочитает рецепт и создаст файлы,
+        как для scaffold-стека. Когда Фаза 1 готова и тесты зелёные,
+        вернись сюда: /sdd-impl увидит состояние и двинет Фазу 2.
+
+2. Tick off all Phase 1 tasks that are marked as "SDD не делает" in the handoff recipe (usually none — in handoff mode the user does everything), commit the marker:
+
+        git add PROJECT.md
+        git commit --allow-empty -m "phase 1: handoff to manual build"
+
+   This empty commit keeps `/sdd-undo` and `/sdd-feature` consistent (they key off `phase N:` commit messages).
+3. Exit. The next `/sdd-impl` run will detect that Phase 2 is next and will also print a handoff message.
+
+## Setup mode (scaffold stacks only)
+
+Runs when no scaffold exists on disk and `impl_mode: scaffold`.
+
+### Project name and slug
+
+Read the human name from `# <name>` at the top of `PROJECT.md`. Derive a slug if the stack recipe needs one (Django does; Next.js uses it in `package.json`): lowercase, Cyrillic → `app`, spaces and dashes → underscores. Examples:
+
+| PROJECT.md | slug |
+|---|---|
+| «Менеджер закладок» | `app` |
+| «Recipe Tracker» | `recipe_tracker` |
+| «Мой бюджет» | `app` |
+
+When in doubt, use `app`. The human name (Russian) stays in `PROJECT.md`, `CLAUDE.md`, and the home page header. The slug is plumbing.
+
+### Steps
+
+Follow the recipe in PROJECT.md's `## Стек / ### Структура проекта (Фаза 1)` section literally:
+
+1. **Create scaffold files** — each code block in the recipe indicates a target path (right above or inside the block). Write the contents verbatim, substituting `<Project display name>` / `<slug>` placeholders with the real values.
+2. **Initialize git** if the doctor warned it wasn't initialized:
+
+        git init
+        git add .gitignore
+        git commit --allow-empty -m "init"
+
+   The empty commit ensures `phase 1: setup` is the second commit, which makes rollback via `/sdd-undo` cleaner.
+3. **Run setup commands** listed in the recipe (e.g. `docker compose run ... django-admin startproject`, `docker compose run ... npm install && npx prisma migrate dev`). Commands run inside the container whenever possible.
+4. **Patch any framework config** (Django settings, Prisma schema, etc.) per the recipe's explicit list.
+5. **UI gate for the home view.** If the recipe marks a template or component as "generated by frontend-design", use the `Skill` tool to invoke `frontend-design:frontend-design`. Pass context:
+   - The project name and a one-or-two-sentence description (from the "Что это" section of `PROJECT.md`).
+   - What already exists: the base template / layout from the recipe (Pico.css + htmx, or Tailwind, depending on stack).
+   - The constraint listed in the recipe (e.g. home template must include `<h1>{{ project_name }}</h1>` for the test to pass).
+
+   Save the resulting template/component to the path the recipe indicates.
+6. **Boot the container + run bootstrap commands** from the recipe (`docker compose up -d`, `docker compose exec -T app python manage.py migrate`, `docker compose exec -T app python manage.py createsuperuser --noinput` for Django; `docker compose up -d` after deps are installed for Next.js).
+7. **Write a short `CLAUDE.md`** in the generated project with just a pointer:
+
+        # <Project display name>
+
+        Этот проект создан через SDD. Стек, правила, план по фазам и
+        рецепт Phase 1 — в `PROJECT.md`. Читай его первым.
+
+        Кратко:
+        - Запуск: `docker compose up -d --build`
+        - Тесты: см. секцию «Как тестировать» в `PROJECT.md`.
+        - Покрытие: 100% на изменённых файлах — иначе фаза не
+          коммитится.
+        - Коммиты: один на фазу (`phase N: <заголовок>`). Откат — через
+          `/sdd-undo`.
+
+8. **Tick off** Phase 1 tasks in `PROJECT.md` as each is done (`- [ ]` → `- [x]`).
+
+Then proceed to the common tail.
+
+## Feature mode (scaffold stacks, Phase 2+)
+
+Runs when a scaffold exists on disk.
+
+1. **Read context.** Open the files this phase's tasks touch — models, views, templates, components, tests. Don't read the whole project — only what you're working on.
+2. **UI gate.** If any task in this phase involves creating or editing templates, CSS, or client-side components, **invoke `frontend-design:frontend-design` via the `Skill` tool *before* writing any UI code.** Pass:
+   - Which page/component we're building (the specific task).
+   - The project's existing visual style (base layout, current templates, any custom CSS).
+   - The feature description from `PROJECT.md`.
+   Use the skill's output as guidance for the UI in this phase.
+3. **Implement tasks sequentially.** After each task, flip `- [ ]` to `- [x]` in `PROJECT.md`.
+4. **Write unit tests alongside the code.** File layout and test framework come from PROJECT.md's `### Как тестировать` — follow that exactly. Typical locations:
+   - Django: `core/tests/test_<feature>.py`
+   - Next.js: sibling `*.test.tsx` / `*.test.ts` next to the code
+5. **Migrations.** If the stack has migrations and models changed, follow the migrate-dev-check sequence in PROJECT.md's `### Как тестировать` section (both Django and Prisma have commands listed there). `migrate --check` / equivalent must succeed before commit.
+6. **htmx / component patterns.** Follow the stack-specific pattern documented in PROJECT.md's `### Структура проекта` or `### Как тестировать` section. For Django+htmx, every list/form view has full-page + fragment branches based on `request.htmx`. For Next.js, pick Server Component by default, Client Component only when client state is needed.
+
+Then proceed to the common tail.
+
+## Common tail (both sub-modes)
+
+### 1. Tests and coverage — first pass
+
+Run the command in PROJECT.md's `### Как тестировать` section literally. Typical patterns:
+
+- Django: `docker compose exec -T app coverage run --source='.' manage.py test && docker compose exec -T app coverage report --fail-under=100 --include='core/*.py' --omit='core/migrations/*,core/tests/*,core/apps.py,core/admin.py'`
+- Next.js: `docker compose exec -T app npm run test:coverage` (vitest is configured to enforce 100% thresholds).
+
+If tests fail, fix until green.
+
+If coverage is below 100% on included paths, add the missing tests. Up to 3 attempts; after three, `AskUserQuestion` in Russian:
+- Label «Попробовать с другой стороны» — one more approach.
+- Label «Закрыть фазу с пометкой ⚠» — mark the problematic file in `PROJECT.md` and move on.
+- Label «Стоп» — exit; the user will investigate.
+
+### 2. Verification
+
+Bring up the app:
+
+    docker compose up -d --build
+
+Wait 15 seconds, confirm `GET /` returns 200.
+
+Run this phase's checkpoint from `PROJECT.md` — as HTTP request(s) + a content assertion (look for a specific substring in the HTML/JSON). Use `curl` or a short in-container Python/Node script. Don't click anything in a browser — this has to be automated.
+
+Then **regression:** run every previous phase's checkpoint. If any fails, stop and surface to the user.
+
+### 3. `simplify` on the diff
+
+Invoke `simplify` via the `Skill` tool. Context: "Here is the list of files I changed in this phase: `<list>`. The phase goal from PROJECT.md is: `<goal>`. The stack is `<stack name>`. Walk through and remove anything unnecessary."
+
+If `simplify` modified any file, return to step 1 (tests + coverage) and step 2 (verification). Once green again, continue.
+
+### 4. `security-review` on the diff
+
+Invoke `security-review` via the `Skill` tool. Context includes the stack (`<stack name>`) — surface stack-appropriate concerns:
+- Django: SQL injection (parameterize via the ORM), XSS in templates (autoescape is on by default), CSRF (htmx wired via `django_htmx`), auth bypass, secrets in commits.
+- Next.js: XSS in dangerouslySetInnerHTML, SSRF in server routes, SQL injection via raw Prisma queries (normal queries are safe), secrets in `.env.local` / committed files.
+
+Auto-apply only low-risk fixes (XSS fix, parameterization, removing a stray secret). Anything that changes behavior — `AskUserQuestion` before applying. Never change architecture or add dependencies beyond what the phase requires.
+
+If anything was applied, return to steps 1 and 2.
+
+### 5. Self-review
+
+Skim the diff:
+- Broken imports?
+- Empty / obviously-template tests (ones that pass no matter what)?
+- Missing parts of the phase's task list?
+
+After `simplify` + `security-review` there's rarely anything left, but check. Fix anything clearly broken. For behavior changes, `AskUserQuestion`.
+
+### 6. Commit
+
+    git add <specific files from this phase>
+    git commit -m "phase <N>: <phase title from PROJECT.md>"
+
+**Never `git add -A`** — too easy to sweep in `.env`, `db.sqlite3` / `dev.db`, caches. Track the files the phase touched and stage them by name. In setup mode that's scaffold files + the framework-generated project; in feature mode, only the files that were actually edited.
+
+Print the short SHA via `git log -1 --format=%h`.
+
+### 7. Report to the user (Russian)
+
+    ✓ Фаза <N>: <title> готова.
+
+    Что появилось:
+      - <1–3 lines describing the feature>
+      - [setup mode only] <stack-appropriate entry points — e.g. «Админка: http://localhost:<port>/admin/ (admin/admin)» for Django>
+
+    Проверь в браузере: http://localhost:<port>
+    <short instruction, what to click>
+
+    Коммит: <sha>
+
+Then `AskUserQuestion`:
+- Label «Следующая фаза» → tell the user to run `/sdd-impl` again.
+- Label «Пауза» → thanks, exit.
+- Label «Что-то не так» → user describes the issue; if it sounds like a bad phase, suggest `/sdd-undo`.
+
+## Error handling
+
+If something breaks during phase implementation (dependencies won't install, the container crashes, tests fail in a non-obvious way):
+1. Try to fix — up to 3 attempts.
+2. If fixing breaks a previous phase's work, fix it properly anyway (working code outranks phase boundaries), but note the cross-phase fix under the relevant phase in `PROJECT.md` as a comment line.
+3. After 3 unsuccessful attempts, `AskUserQuestion` in Russian:
+   - Label «Попробовать другим способом» → one more approach.
+   - Label «Пропустить эту задачу с ⚠» → replace `- [ ]` with `- [ ] ⚠` in `PROJECT.md`, move on.
+   - Label «Стоп» → exit, leave state as-is.
+4. Never silently swallow errors. Always surface what went wrong to the user.
+
+## What not to do
+
+- Do not run framework CLIs on the host (`python manage.py`, `npm`, `flutter`, etc.). Everything for scaffold stacks goes through `docker compose exec` or `docker compose run`.
+- Do not change the stack. If it feels like a new dependency is needed, justify to yourself that the phase genuinely requires it. Never add Tailwind to a Django project, React to an htmx project, Celery/Redis/DRF etc. casually.
+- Do not `git reset --hard` or force-push. Rollback is the user's call via `/sdd-undo`.
+- Do not skip tests. 100% coverage on changed files is a hard requirement — the exact scope (Django `core/*.py`, Next.js `src/**/*.{ts,tsx}`) comes from PROJECT.md.
+- Do not rewrite `PROJECT.md` wholesale. Allowed: ticking boxes; adding a small sub-task if a phase missed something; marking a task `⚠`.
+- Do not return JSON from Django+htmx views — htmx wants HTML fragments. (Next.js API routes return JSON, that's fine.)
+- Do not open a reference file from `~/.claude/skills/sdd-idea/references/`. PROJECT.md is the contract; everything you need is there.

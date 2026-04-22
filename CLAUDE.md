@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this repo is
 
-This is **not** a web application. It's a distribution repo for five Claude Code skills (`sdd-idea`, `sdd-impl`, `sdd-undo`, `sdd-feature`, `sdd-change`). `sdd-impl` bundles `scripts/sdd-doctor.sh`; `sdd-idea` bundles `references/django-htmx.md` (the only stack recipe). `install.sh` copies the whole `skills/` tree into `~/.claude/skills/`. All "code" here is Markdown (SKILL.md files + the one reference) and Bash.
+This is **not** a web application. It's a distribution repo for five Claude Code skills (`sdd-idea`, `sdd-impl`, `sdd-undo`, `sdd-feature`, `sdd-change`). `sdd-impl` bundles `scripts/sdd-doctor.sh`; `sdd-idea` bundles `references/tech-stack.md` (the only stack recipe). At `/sdd-idea` runtime that reference is copied into each generated project as `tech-stack.md` — the per-project recipe that `/sdd-impl`, `/sdd-feature`, and `/sdd-change` read. `install.sh` copies the whole `skills/` tree into `~/.claude/skills/`. All "code" here is Markdown (SKILL.md files + the one reference) and Bash.
 
 When users run the skills, they generate **target Django + htmx web apps**. SDD only ships one stack — see "Stack" below. Don't confuse this repo's stack (shell + markdown) with what the skills produce (Django + htmx web apps in Docker).
 
@@ -21,7 +21,7 @@ There is no test suite, linter, or build. Validation is manual: run `install.sh`
 
 ## Workflow when editing skills
 
-**Always load `/skill-creator` before touching anything under `skills/`.** That includes `SKILL.md` bodies, frontmatter (`description` affects triggering), `references/django-htmx.md`, and `scripts/*`. The skill-creator provides the evaluation loop (snapshot old version → test cases → with-skill vs baseline → iterate) and the description-optimization tooling — skipping it means editing prompts blind. Load it at the start of the session, not only at commit time.
+**Always load `/skill-creator` before touching anything under `skills/`.** That includes `SKILL.md` bodies, frontmatter (`description` affects triggering), `references/tech-stack.md`, and `scripts/*`. The skill-creator provides the evaluation loop (snapshot old version → test cases → with-skill vs baseline → iterate) and the description-optimization tooling — skipping it means editing prompts blind. Load it at the start of the session, not only at commit time.
 
 This applies to every change, big or small: tweaking a description, fixing a step in a SKILL.md, editing the recipe. Load `/skill-creator`, then make the change.
 
@@ -40,7 +40,7 @@ Each `SKILL.md` is an instruction file Claude Code loads when triggered. The YAM
 
 ### The five skills form a pipeline
 
-- `sdd-idea` — interview → confirms the idea is a web app (or reframes a mobile/desktop/CLI idea as a web MVP) → writes `PROJECT.md` (spec + Django + htmx recipe inlined + phased plan). Writes **no code**.
+- `sdd-idea` — interview → confirms the idea is a web app (or reframes a mobile/desktop/CLI idea as a web MVP) → writes `PROJECT.md` (spec + short stack summary + phased plan) and copies `references/tech-stack.md` into the project as `tech-stack.md`. Writes **no code**.
 - `sdd-impl` — reads `PROJECT.md`, builds the next unchecked phase end-to-end. Phase 1 sets up the Docker container, Django project, home page, and tests; later phases add features. Commits `phase N: <title>`.
 - `sdd-undo` — `git revert` of the last `phase N: ...` commit plus any trailing review commits. Never `reset`, never force-push.
 - `sdd-feature` — interview → **appends** new phases to an existing `PROJECT.md`. Writes **no code**.
@@ -52,7 +52,7 @@ Skills do not invoke each other. The transition between them is the user re-runn
 
 ### Stack
 
-SDD ships exactly one stack: **Django 5 + htmx + SQLite + Pico.css in Docker**. The full recipe lives in `skills/sdd-idea/references/django-htmx.md`. Every PROJECT.md inlines this recipe so `/sdd-impl` and `/sdd-feature` never have to open the reference file at runtime.
+SDD ships exactly one stack: **Django 5 + htmx + SQLite + Pico.css in Docker**. The full recipe lives in `skills/sdd-idea/references/tech-stack.md`. At runtime `/sdd-idea` copies that file into each generated project as `tech-stack.md`. Downstream skills (`/sdd-impl`, `/sdd-feature`, `/sdd-change`) read the project-local copy, so projects stay self-contained and immune to drift if the skill's reference is later updated.
 
 The `references/` directory exists for modularity (the recipe is large and benefits from being a separate file) but currently holds exactly one file. Don't add more stacks without a separate decision — SDD targets vibe coders building web apps and the multi-stack abstraction was removed because it was carrying its weight only for one or two stacks anyway.
 

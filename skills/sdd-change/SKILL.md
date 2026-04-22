@@ -25,6 +25,14 @@ Edits an existing SDD project's `PROJECT.md` when the user wants to change somet
 
 The split matters because the actions are opposite in spirit: feature = append; change = mutate. A vibe coder shouldn't have to know which happens when — this skill reads the state and does the right thing.
 
+## Audience and tone
+
+The user is a vibe coder. Speak Russian informally ("ты"), friendly, short sentences. When you describe options in `AskUserQuestion` or summarize changes in the report, say what the user sees and does — not how it's coded. Same rule applies even if the user's own request was full of tech terms.
+
+Avoid in user-facing text: `стаб`, `payload`, `endpoint`, `CRUD`, `workflow` (use `сценарий` / `автоматизация`), `cron` / `management-команда` (use `по расписанию` / `скрипт`), `middleware`, `fragment`, `swap` in the htmx sense, `pending` (use `ждёт подтверждения`), `мобилка` / `фишка` / `штука`. The full version of these rules, with examples, is in `sdd-idea/SKILL.md` → "How to talk about features and screens".
+
+`миграция` is OK but only for "updating data after the plan changed" — this skill's migration phases use the word on purpose. Don't stretch it to unrelated contexts.
+
 ## Plan mode (mandatory first action)
 
 The first thing this skill does is switch to plan mode. Call `EnterPlanMode` before any other step.
@@ -47,9 +55,13 @@ Completed phases correspond to real code in git. You can't "unimplement" a phase
 
 ### 1. Read the current state
 
-- `PROJECT.md` — spec, stack recipe, phase list with checkboxes.
-- If missing, print in Russian:
+- `PROJECT.md` — spec, short stack summary, phase list with checkboxes.
+- `tech-stack.md` — the full recipe that `/sdd-idea` copied into the project.
+- If `PROJECT.md` is missing, print in Russian:
   > Похоже, это не SDD-проект — нет `PROJECT.md`. `/sdd-change` меняет существующий план. Если начинаешь с нуля — `/sdd-idea`.
+  Then stop.
+- If `tech-stack.md` is missing, print in Russian:
+  > В проекте нет `tech-stack.md` — рецепт стека, по которому SDD держит границы плана. Похоже, проект создан старой версией SDD. Запусти `/sdd-idea` с опцией «Начать заново», чтобы план и рецепт обновились вместе.
   Then stop.
 - **Confirm the stack** from PROJECT.md's `## Стек` section — `name:` should be `django-htmx` (the only stack SDD ships). Read these files as "real code": `manage.py`, `<slug>/settings.py`, `<slug>/urls.py`, `core/models.py`, `core/views.py`, `core/urls.py`, `core/admin.py`, filenames in `templates/core/` and `core/tests/`.
 - Goal: know what's **actually** in the app, not just what was planned.
@@ -73,10 +85,10 @@ Show the user you understand the current state. Russian:
 Tight. The stack, audience, and architecture are already fixed. The only thing to figure out is **what changes and where it lives**.
 
 **Turn 1 — open description.**
-- «Опиши своими словами, что хочешь поменять. Это может быть описание в спеке, план будущей фазы, или поведение того, что уже работает.»
+- «Опиши своими словами, что хочешь поменять. Это может быть описание проекта, план будущей фазы, или поведение того, что уже работает.»
 
 **Turn 2 — classify, with options grounded in what was said.** Offer the surfaces that actually match the request. Each option names a concrete target:
-- Spec section: «Поменять описание в спеке — раздел «<section title>»».
+- Spec section: «Поменять описание проекта — раздел «<section title>»».
 - Unimplemented phase: «Переписать Фазу <N>: <title>».
 - Already-built behavior: «Добавить фазу миграции — <one-line label>» and, in the option description, note that the completed phase stays `[x]` as a historical record and a new phase will do the migration.
 - A single change can legitimately touch more than one surface — allow multi-select, or do a follow-up turn per surface.
@@ -113,7 +125,7 @@ Rewrite the phase's goal, task list, and checkpoint in place. Keep the phase num
 Put structural changes at the *start* of the migration phase so the app stays runnable while `/sdd-impl` applies the tasks in order. Example tasks for "switch login from phone to email":
 
 - "Добавить поле `email` в модель `User`, снять `unique` с `phone`"
-- "`makemigrations` + `migrate` + data-migration: перенести телефоны в email, где это возможно, остальные пометить"
+- "`makemigrations` + `migrate` + перенос данных: скопировать телефоны в email, где получится, остальные пометить вручную"
 - "Переписать `LoginForm`: поле `email` вместо `phone`"
 - "Обновить `login.html` и `test_login.py`"
 - "Проверка: пользователь входит по email, старые аккаунты мигрированы."
@@ -135,7 +147,7 @@ If the change lands on a phase that's half-done, `AskUserQuestion` with three op
 ### 6. Stack guardrails
 
 - **Do not switch the stack.** The chosen stack lives in `PROJECT.md`'s `## Стек / name:` — changes must stay on it. If the change genuinely requires a different stack (e.g. the user now wants a mobile app instead of a web app), that's a *new* SDD project, not a change. Tell the user to start over with `/sdd-idea` in a fresh folder — SDD has no "swap the stack" operation because it would effectively rewrite the whole project anyway.
-- **Stay inside the stack's «Чего не тащить» list.** PROJECT.md's `## Стек / ### Чего не тащить` enumerates what the original plan deliberately avoided. A change doesn't un-avoid those — e.g. don't introduce React into a Django+htmx project because "now this page needs to feel live".
+- **Stay inside the stack's «do not bring in» list.** `./tech-stack.md` (`## Do not bring in` section) enumerates what the stack deliberately avoids. A change doesn't un-avoid those — e.g. don't introduce React into a Django+htmx project because "now this page needs to feel live".
 
 ### 7. Backup and write
 
@@ -172,7 +184,7 @@ In Russian. Vary by which surfaces changed — only show lines for surfaces that
       <pick the line that matches what changed>
       • Появилась новая фаза — запусти /sdd-impl, построю её.
       • Переписал задачи в ещё не построенной фазе — когда дойдёшь до неё, /sdd-impl пойдёт по новому плану.
-      • Поменялась только спека, код не трогаем — следующие фазы будут строиться уже под новое описание.
+      • Поменялось только описание проекта, код не трогаем — следующие фазы будут строиться уже под новое описание.
 
 Then `AskUserQuestion`:
 - Label «Подправить ещё раз» → back to Step 3 focused on what the user wants different.

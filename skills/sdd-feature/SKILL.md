@@ -37,13 +37,23 @@ If the user rejects the plan, revise it and call `ExitPlanMode` again with the u
 - Never touch completed phases in `PROJECT.md` — they correspond to real code already in git.
 - Consider real code, not just the plan: the new feature may conflict with existing models / views, and those fixes must become tasks in the new phases.
 
+## Audience and tone
+
+The user is a vibe coder. Speak Russian informally ("ты"), friendly, short sentences. When you describe the new feature, its phases, or its tasks — in `AskUserQuestion` options, the confirmation plan, or the report — say what the user will see and do, not how it's coded. Same rule applies even if the user's own pitch was full of tech terms.
+
+Avoid in user-facing text: `стаб`, `payload`, `endpoint`, `CRUD`, `workflow` (use `сценарий` / `автоматизация`), `cron` / `management-команда` (use `по расписанию` / `скрипт`), `middleware`, `fragment`, `swap` in the htmx sense, `pending` (use `ждёт подтверждения`), `мобилка` / `фишка` / `штука`. The full version of these rules, with examples, is in `sdd-idea/SKILL.md` → "How to talk about features and screens".
+
 ## Steps
 
 ### 1. Read the current state
 
-- `PROJECT.md` — spec + stack recipe + phase list with checkboxes.
-- If missing, print in Russian:
+- `PROJECT.md` — spec + short stack summary + phase list with checkboxes.
+- `tech-stack.md` — the full recipe (scaffolding, tests, «do not bring in» list) that `/sdd-idea` copied into the project.
+- If `PROJECT.md` is missing, print in Russian:
   > Похоже, это не SDD-проект — нет `PROJECT.md`. `/sdd-feature` расширяет существующие проекты. Если начинаешь с нуля — `/sdd-idea`.
+  Then stop.
+- If `tech-stack.md` is missing, print in Russian:
+  > В проекте нет `tech-stack.md` — рецепт стека, по которому SDD проверяет границы стека для новой фичи. Похоже, проект создан старой версией SDD. Запусти `/sdd-idea` с опцией «Начать заново», чтобы план и рецепт обновились вместе.
   Then stop.
 - **Confirm the stack** from PROJECT.md's `## Стек` section — `name:` should be `django-htmx` (the only stack SDD ships). Read these files as "real code": `manage.py`, `<slug>/settings.py`, `<slug>/urls.py`, `core/models.py`, `core/views.py`, `core/urls.py`, `core/admin.py`, filenames in `templates/core/` and `core/tests/`.
 - Goal: know what's **actually** in the app, not just what was planned.
@@ -140,6 +150,6 @@ Then `AskUserQuestion`:
 - **Always back up before rewriting** `PROJECT.md`.
 - **Do not write code.** That's `/sdd-impl`'s job.
 - **Do not switch the stack.** The chosen stack lives in `PROJECT.md`'s `## Стек / name:` — new phases must stay on it. If a feature genuinely requires a different stack (e.g. the user now wants a mobile client for a Django web app), that's a *new* SDD project, not a feature. Adding a new dependency within the current stack is fine, but treat it as a specific task in the first new phase and explain **why** in the phase description.
-- **Stay inside the stack's «Чего не тащить» list.** PROJECT.md's `## Стек / ### Чего не тащить` enumerates what the original plan deliberately avoided. A new feature doesn't un-avoid those — e.g. don't introduce React into a Django+htmx project because "this new page is interactive".
+- **Stay inside the stack's «do not bring in» list.** `./tech-stack.md` (`## Do not bring in` section) enumerates what the stack deliberately avoids. A new feature doesn't un-avoid those — e.g. don't introduce React into a Django+htmx project because "this new page is interactive".
 - **Short interview.** If you're asking a 6th question, you're overcomplicating. Cap at 3–4 turns. The project exists; most decisions are already made.
 - **Every new task is verifiable.** Not "improve UX" — but "add a Share button to the recipe card that copies a link to the clipboard". 100% coverage on `/sdd-impl`'s side only works with concrete tasks.

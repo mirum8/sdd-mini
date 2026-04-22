@@ -3,36 +3,69 @@ name: sdd-idea
 description: >
   Planning-only skill for SDD projects. SDD builds **web apps** on
   Django + htmx + SQLite + Pico.css in Docker — one stack, the only
-  one. Turns a rough idea into a single PROJECT.md that holds both
-  the spec AND the phased implementation plan. **Only runs when the
+  one. Turns a rough idea into PROJECT.md (spec + phased plan) plus a
+  project-local tech-stack.md recipe. **Only runs when the
   user explicitly invokes `/sdd-idea`** (with or without accompanying
   text, e.g. `/sdd-idea` or `/sdd-idea хочу сделать трекер книг`). Do
   NOT auto-invoke on natural-language hints like "I have an idea",
   "let's plan an app", "new project", "хочу сделать приложение",
   "давай спроектируем", etc. — those phrases alone are not enough;
   wait for the explicit slash command. Do NOT write code, do NOT
-  touch the host environment — the only output is PROJECT.md (and
-  versioned backups on rewrite). Hands off to /sdd-impl for actual
-  building.
+  touch the host environment — outputs are PROJECT.md and tech-stack.md
+  (plus versioned PROJECT.v<N>.md backups on rewrite). Hands off to
+  /sdd-impl for actual building.
 ---
 
 # sdd-idea — idea → PROJECT.md
 
-Turn a rough idea into `PROJECT.md` — a single file holding the spec, the stack recipe, and the phased plan. **This skill writes no code, touches no environment, runs no commands.** The only output is `PROJECT.md` (and versioned `PROJECT.v<N>.md` backups on rewrite). Environment readiness is `/sdd-impl`'s job.
+Turn a rough idea into two files: `PROJECT.md` — the spec plus the phased plan — and `tech-stack.md` — a verbatim copy of the stack recipe. **This skill writes no code, touches no environment, runs no commands.** Only output is those two files (plus versioned `PROJECT.v<N>.md` backups when the plan is rewritten). Environment readiness is `/sdd-impl`'s job.
 
 The goal is that the user leaves with a concrete plan, not a vague direction. A weak plan produces a bad project; a solid plan lets `/sdd-impl` move phase-to-phase without constantly re-asking the user what they want.
 
 ## What SDD builds
 
-SDD ships exactly one stack: **Django 5 + htmx + SQLite + Pico.css, running in Docker**. Every project — tracker, manager, blog, small internal tool, checklist — is built on this one foundation. The full recipe lives in `references/django-htmx.md` and gets inlined into every `PROJECT.md`.
+SDD ships exactly one stack: **Django 5 + htmx + SQLite + Pico.css, running in Docker**. Every project — tracker, manager, blog, small internal tool, checklist — is built on this one foundation. The recipe lives in `references/tech-stack.md`; `/sdd-idea` copies it into each new project as `tech-stack.md`, and `/sdd-impl` reads that copy when it builds phases.
 
 SDD does **not** build mobile apps, desktop apps, CLI tools, games, or anything that needs a native toolchain. If the user's idea lands in one of those categories, see Step 3 — in most cases you can still help by reframing the idea as a web MVP that can grow into a native wrap later (PWA → mobile, Tauri wrap → desktop).
 
 ## Audience and tone
 
-The user is a vibe coder: building an app for themselves or a small group, not a professional developer. Speak Russian informally ("ты", not "вы"), friendly, minimal jargon. Short sentences. Anglicisms like "стек", "фича", "деплой" are fine when they read natural.
+The user is a vibe coder: building an app for themselves or a small group, not a professional developer. Speak Russian informally ("ты", not "вы"), friendly, short sentences.
 
 All user-facing output and everything written into `PROJECT.md` is Russian. Code and identifiers stay English.
+
+### How to talk about features and screens
+
+When you describe options, screens, or features to the user — in `AskUserQuestion` option descriptions, chat messages, or the `## Как это работает` section of `PROJECT.md` — stick to what the user sees and does. Not how it's coded. One short sentence per option is usually enough; two if absolutely needed.
+
+This rule applies **even when the user's own pitch is heavy on tech terms**. If the user described their idea with "approval-queue" and "workflows", your option descriptions still translate that into everyday language. Echoing their jargon back is noise, not signal — your job is to turn the idea into words a non-coder beside them could follow.
+
+Words to avoid in user-facing text (they've tripped up real users):
+
+- `стаб`, `заглушка` in the "mock response" sense — just say what the feature does in the MVP: «ответы пока простые, без настоящего AI».
+- `payload` — use `данные` or describe the field: «что именно отправляется».
+- `endpoint` — describe the action: «кнопка отправляет», «страница обновляется».
+- `CRUD` — list the verbs the user cares about: «добавить, посмотреть, поменять, удалить».
+- `workflow` — use `сценарий`, `автоматизация`, «последовательность действий».
+- `cron`, `Django-Q`, `management-команда` — use «по расписанию», «по таймеру», «скрипт, который запускается сам».
+- `middleware`, `fragment`, `swap` in the htmx sense — the user never needs to see these; describe what updates on screen instead.
+- `pending` — use «ждёт подтверждения», «в ожидании».
+- `queue` as a data-structure word — fine in the everyday sense («список действий на подтверждение»), never as «положить в очередь» / «достать из очереди».
+- `мобилка`, `фишка`, `штука` — feels patronizing. Use `мобильное приложение`, `возможность`, or the actual name of the thing.
+
+These anglicisms ARE fine because they read as normal Russian tech speech: `стек`, `фича`, `деплой`, `база` / `БД`, `форма`, `кнопка`, `страница`, `поле`, `интеграция`. The word `миграция` is also fine, but only in the narrow sense of "updating data after the plan changed" — don't stretch it to unrelated contexts.
+
+**Example — same option, bad vs good:**
+
+Bad (this is a real regression):
+
+> Approve-queue (очередь действий). Список pending-действий с JSON-payload и кнопками Approve/Decline. После approve действие уходит в лог (стаб никуда не бьёт).
+
+Good:
+
+> Экран со списком действий, которые ждут подтверждения. У каждого — кнопки «одобрить» и «отклонить». После одобрения запись уходит в историю; на этом этапе действие никуда реально не отправляется.
+
+Same information, half the special words, and the user actually knows what screen they're picking.
 
 ## Step 0 — gather context
 
@@ -95,7 +128,7 @@ If the idea doesn't obviously fit a web browser, try to reframe it as a web MVP 
 
 Reframing rules:
 - Always try the reframe before declining. Most "mobile" ideas work as mobile-friendly web.
-- Confirm the reframe with the user through `AskUserQuestion` before proceeding — don't silently pivot their idea. Example phrasing: «Как раз под твою задачу удобно начать с веба — открывается с телефона без установки, данные на сервере, потом можно обернуть в мобилку. Подойдёт такой путь?»
+- Confirm the reframe with the user through `AskUserQuestion` before proceeding — don't silently pivot their idea. Example phrasing: «Как раз под твою задачу удобно начать с веба — открывается с телефона без установки, данные на сервере, потом можно превратить в полноценное мобильное приложение. Подойдёт такой путь?»
 - If the user insists on a native-only build (no web MVP acceptable) or the idea is genuinely beyond SDD's scope (a 3D game, a kernel module, a trading bot with hard latency budgets), tell them plainly:
 
   > Такую идею SDD4beginners не закроет — здесь мы собираем веб-приложения на Django. Поищи другой инструмент под этот стек или вернись, если захочешь веб-версию.
@@ -103,7 +136,7 @@ Reframing rules:
   Then exit.
 
 When the idea fits (directly or after a reframe), log one short Russian sentence telling the user what's next. Example:
-> Окей, собираем веб-приложение на Django + htmx. С телефона откроется нормально, а если потом захочется «мобилки» — завернём как PWA.
+> Окей, собираем веб-приложение на Django + htmx. С телефона откроется нормально, а если потом захочется, чтобы оно ставилось на телефон как обычное приложение, — добавим PWA-обёртку (это когда сайт ставится в один клик и работает даже без интернета).
 
 Then go to Step 4.
 
@@ -113,11 +146,11 @@ Formulate the **minimum version that still solves the core problem**. Not "every
 
 Use `AskUserQuestion` to confirm. Example phrasing: «Вот что предлагаю собрать первым — [2–4 lines]. Ок или что-то убрать/добавить?» This is the single approval gate before writing the plan.
 
-## Step 5 — write PROJECT.md
+## Step 5 — write PROJECT.md and copy tech-stack.md
 
-Inline the django-htmx recipe into PROJECT.md so the file is self-contained. `/sdd-impl` and `/sdd-feature` read only PROJECT.md — they must never open a reference file at runtime.
+Two files land in the project directory: `PROJECT.md` (spec + phase plan + a short stack summary) and `tech-stack.md` (the full recipe — scaffolding, tests, «do not bring in» list). Downstream skills read `tech-stack.md` from the project directory for everything recipe-related; `PROJECT.md` stays focused on what the user is building.
 
-Structure — Russian headings, Russian prose inside each section (translate from the English reference as needed), language-neutral code blocks verbatim. Include only sections that are relevant; skip a section if it doesn't apply (e.g. `## Аккаунты и доступ` for a personal single-user tool).
+Structure of `PROJECT.md` — Russian headings, Russian prose inside each section, language-neutral code blocks verbatim. Include only sections that are relevant; skip a section if it doesn't apply (e.g. `## Аккаунты и доступ` for a personal single-user tool).
 
     # <Название проекта>
 
@@ -144,19 +177,7 @@ Structure — Russian headings, Russian prose inside each section (translate fro
 
     ## Стек
     **name:** django-htmx
-    **summary:** Django 5 + htmx + SQLite + Pico.css в Docker. Серверный рендеринг, формы, админка, SQLite из коробки.
-
-    ### Технологии (минимум для MVP)
-    <list, translated from the reference "Minimal MVP tech" section>
-
-    ### Структура проекта (Фаза 1)
-    <inline the django-htmx Phase 1 recipe verbatim — see "How to fill Структура проекта (Фаза 1)" below>
-
-    ### Как тестировать
-    <translated from reference "How to test">
-
-    ### Чего не тащить
-    <translated from reference "Do not bring in">
+    **summary:** Django 5 + htmx + SQLite + Pico.css в Docker. Страницы собираются на сервере, есть формы, готовая админка, встроенная база данных.
 
     ### Будущее расширение (опционально)
     <only include this subsection if the user's idea or docs explicitly mentioned growth beyond the
@@ -197,11 +218,15 @@ Structure — Russian headings, Russian prose inside each section (translate fro
 
     **Тесты Фазы N:** все предыдущие чекпоинты ещё зелёные.
 
-All prose inside `PROJECT.md` is Russian. Code blocks (Dockerfile, `settings.py` snippets, etc.) stay as-is. `## Стек` subsection titles (`Технологии`, `Структура проекта`, `Как тестировать`, `Чего не тащить`) are always Russian.
+All prose inside `PROJECT.md` is Russian.
 
-### How to fill `### Структура проекта (Фаза 1)`
+### Copy tech-stack.md into the project
 
-Inline `references/django-htmx.md`'s Phase 1 recipe verbatim: every code block, every target path, every command. `/sdd-impl` writes the contents of those code blocks to disk byte-for-byte, so if they aren't in PROJECT.md the build won't work. Prose around the code blocks is translated to Russian; the code itself stays verbatim.
+After writing `PROJECT.md`, copy the recipe file into the project directory so downstream skills can find it:
+
+    cp "$HOME/.claude/skills/sdd-idea/references/tech-stack.md" ./tech-stack.md
+
+If `cp` isn't convenient, read the source with `Read` and write the destination with `Write` — the content is small. Byte-for-byte copy; no edits, no translation. This is the only file `/sdd-idea` creates besides `PROJECT.md` and its backups.
 
 ### Phase construction rules
 
@@ -234,7 +259,7 @@ Options 1 and 2 can be chosen as many times as the user wants — versioning pro
 ## What not to do
 
 - Do not touch the host environment — no installs, no version checks, no toolchain probes. Environment readiness lives in `/sdd-impl`; planning shouldn't care.
-- Do not create any file other than `PROJECT.md` and its `PROJECT.v<N>.md` backups.
+- Do not create any file other than `PROJECT.md`, its `PROJECT.v<N>.md` backups, and `tech-stack.md`.
 - Do not try to do Phase 1's tasks — that's `/sdd-impl`'s job.
 - Do not discuss framework, library, or hosting choices with the user. SDD ships one stack; the user ships the app.
 - Do not silently pivot a non-web idea into a web app — confirm the reframe through `AskUserQuestion` (see Step 3).

@@ -20,6 +20,10 @@ Reverts the last SDD phase safely: via `git revert`, not history rewriting. The 
 
 A vibe coder doesn't know about `git reset --hard` and shouldn't have to. Sometimes a phase comes out wrong — wrong view, weird UX, or `/simplify` / `/security-review` made things worse. We need a safe "take it back, let me try again" button.
 
+## Audience and tone
+
+The user is a vibe coder. Speak Russian informally ("ты"), friendly, short sentences. Most messages here are canned (the confirmation prompt, the conflict explanation, the success report), but when something goes wrong and you need to compose free text, describe it in terms of what happened and what the user can do next — not in git/filesystem internals. Avoid `payload`, `endpoint`, `workflow`, `middleware`, `fragment`, `pending`, `мобилка` / `фишка` / `штука`; full guidance in `sdd-idea/SKILL.md` → "How to talk about features and screens".
+
 ## Steps
 
 ### 1. Sanity check git

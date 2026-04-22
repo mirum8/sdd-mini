@@ -1,46 +1,32 @@
 ---
 name: sdd-idea
 description: >
-  Planning-only skill for SDD projects. Turns a rough idea into a single
-  PROJECT.md that holds both the spec AND the phased implementation plan,
-  with the right stack picked for the idea (web, SPA, mobile, desktop,
-  CLI, game). **Only runs when the user explicitly invokes `/sdd-idea`**
-  (with or without accompanying text, e.g. `/sdd-idea` or `/sdd-idea
-  хочу сделать трекер книг`). Do NOT auto-invoke on natural-language
-  hints like "I have an idea", "let's plan an app", "new project",
-  "хочу сделать приложение", "давай спроектируем", etc. — those phrases
-  alone are not enough; wait for the explicit slash command. Do NOT
-  write code, do NOT run the doctor script, do NOT create scaffolds —
-  the only output is PROJECT.md. Hands off to /sdd-impl for actual
+  Planning-only skill for SDD projects. SDD builds **web apps** on
+  Django + htmx + SQLite + Pico.css in Docker — one stack, the only
+  one. Turns a rough idea into a single PROJECT.md that holds both
+  the spec AND the phased implementation plan. **Only runs when the
+  user explicitly invokes `/sdd-idea`** (with or without accompanying
+  text, e.g. `/sdd-idea` or `/sdd-idea хочу сделать трекер книг`). Do
+  NOT auto-invoke on natural-language hints like "I have an idea",
+  "let's plan an app", "new project", "хочу сделать приложение",
+  "давай спроектируем", etc. — those phrases alone are not enough;
+  wait for the explicit slash command. Do NOT write code, do NOT
+  touch the host environment — the only output is PROJECT.md (and
+  versioned backups on rewrite). Hands off to /sdd-impl for actual
   building.
 ---
 
 # sdd-idea — idea → PROJECT.md
 
-Turn a rough idea into `PROJECT.md` — a single file holding the spec, the stack recipe, and the phased plan. **This skill writes no code, does not run the doctor, does not scaffold anything.** Only `PROJECT.md` (and versioned `PROJECT.v<N>.md` backups on rewrite).
+Turn a rough idea into `PROJECT.md` — a single file holding the spec, the stack recipe, and the phased plan. **This skill writes no code, touches no environment, runs no commands.** The only output is `PROJECT.md` (and versioned `PROJECT.v<N>.md` backups on rewrite). Environment readiness is `/sdd-impl`'s job.
 
 The goal is that the user leaves with a concrete plan, not a vague direction. A weak plan produces a bad project; a solid plan lets `/sdd-impl` move phase-to-phase without constantly re-asking the user what they want.
 
-## Stack is SDD's choice, not a discussion
+## What SDD builds
 
-SDD never asks the user to pick the stack — that's a well-known source of bikeshedding and the opposite of what a vibe coder needs. Instead, SDD reads the user's idea, picks the best-fit stack from `references/*.md` (this skill's private recipe library), and commits to it. If the idea doesn't fit the default web stack, SDD picks a different stack — it never refuses.
+SDD ships exactly one stack: **Django 5 + htmx + SQLite + Pico.css, running in Docker**. Every project — tracker, manager, blog, small internal tool, checklist — is built on this one foundation. The full recipe lives in `references/django-htmx.md` and gets inlined into every `PROJECT.md`.
 
-The stack library in `references/`:
-
-| File | Stack | `impl_mode` | Fit |
-|---|---|---|---|
-| `django-htmx.md` | Django 5 + htmx + SQLite + Pico.css + Docker | scaffold | Default web app. Trackers, managers, small internal tools |
-| `nextjs.md` | Next.js 15 + Prisma + SQLite + Tailwind + Docker | scaffold | SPA-grade interactivity: drag-and-drop, live updates |
-| `flutter.md` | Flutter + Riverpod + sqflite | handoff | Mobile iOS/Android |
-| `tauri.md` | Tauri 2 + SvelteKit + SQLite | handoff | Cross-platform desktop |
-| `cli-python.md` | Python + Typer + Rich + pytest | handoff | Terminal utilities |
-| `fastapi-htmx.md` | FastAPI + htmx + SQLite + SQLAlchemy + Docker | handoff | Lightweight server-rendered web |
-| `game-web.md` | Phaser 3 + Vite + TypeScript + Vitest | handoff | Browser 2D games |
-
-`impl_mode: scaffold` — `/sdd-impl` automates Phase 1 end-to-end.
-`impl_mode: handoff` — `/sdd-impl` hands off to Claude Code with the full recipe already in PROJECT.md.
-
-Either way the user gets a complete, self-contained `PROJECT.md`.
+SDD does **not** build mobile apps, desktop apps, CLI tools, games, or anything that needs a native toolchain. If the user's idea lands in one of those categories, see Step 3 — in most cases you can still help by reframing the idea as a web MVP that can grow into a native wrap later (PWA → mobile, Tauri wrap → desktop).
 
 ## Audience and tone
 
@@ -52,9 +38,11 @@ All user-facing output and everything written into `PROJECT.md` is Russian. Code
 
 Before anything else, collect context the user has already put in front of you:
 
-1. **`./docs/` directory — always read it.** If `./docs/` exists in cwd, list its contents and read every text file in it (recursively; skip binaries and anything obviously huge). These are the user's own notes, references, sketches, or drafts for the idea — treat them as authoritative input alongside the chat messages. During the interview, cite specifics from docs ("в `docs/notes.md` ты упомянул X — это всё ещё актуально?") instead of asking questions the docs already answer. Carry what you learned from docs into the stack pick and into `PROJECT.md` (the `## Что это`, `## Как это работает`, and `## Данные` sections especially). If `./docs/` is absent, skip silently.
+1. **`./docs/` directory — always read it.** If `./docs/` exists in cwd, list its contents and read every text file in it (recursively; skip binaries and anything obviously huge). These are the user's own notes, references, sketches, or drafts for the idea — treat them as authoritative input alongside the chat messages. During the interview, cite specifics from docs ("в `docs/notes.md` ты упомянул X — это всё ещё актуально?") instead of asking questions the docs already answer. Carry what you learned from docs into `PROJECT.md` (the `## Что это`, `## Как это работает`, and `## Данные` sections especially). If `./docs/` is absent, skip silently.
 
 2. **Text passed with the trigger.** The skill can be invoked as `/sdd-idea <описание идеи>` or just `/sdd-idea` on its own. If there is accompanying text, treat it as the user's opening pitch — start the interview from there, don't re-ask "что хочешь построить?". If there is no text, open with one broad question.
+
+**What docs are for, and what they aren't.** Docs tell you *what* the user wants to build — the problem, the people, the data, the constraints. Docs do **not** dictate the stack. If docs mention specific production technologies (Postgres, Redis, Kafka, Kubernetes, a particular AI orchestration framework, "production-grade architecture", a specific cloud), treat those as long-term aspirations, not MVP requirements. The MVP runs on SDD's one stack; nothing else. Detailed production specs in docs are common when the user pasted a corporate document — the job here is to extract the *idea* and propose the *smallest possible web MVP* on top of it. Production-grade infra goes into later phases as "future extension", not Phase 1.
 
 Then go to Step 1.
 
@@ -62,17 +50,18 @@ Then go to Step 1.
 
 First check: is there a `PROJECT.md` in cwd already?
 
-- **If present:** read it, then `AskUserQuestion` with three options:
+- **If present:** read it, then `AskUserQuestion` with four options:
   1. Label «Продолжить проект» → tell the user to run `/sdd-impl`, exit without rewriting anything.
   2. Label «Расширить фичей» → tell the user to run `/sdd-feature`, exit.
-  3. Label «Начать заново» → back up `PROJECT.md` → `PROJECT.v<N>.md` (N = next free integer), then continue to Step 2.
+  3. Label «Поменять что-то в плане или спеке» → tell the user to run `/sdd-change`, exit.
+  4. Label «Начать заново» → back up `PROJECT.md` → `PROJECT.v<N>.md` (N = next free integer), then continue to Step 2.
 - **If absent:** go to Step 2.
 
 ## Step 2 — the interview (8–12 turns)
 
 Ask questions through `AskUserQuestion`. 1–3 related questions per turn, each with 2–4 concrete answer options grounded in what the user has said so far.
 
-Goal: build a clear picture of *what* we're building and *for whom*. **Never ask about the stack.**
+Goal: build a clear picture of *what* we're building and *for whom*. **Never ask about the stack** — there's only one, and the user doesn't pick it.
 
 Cover the topics below. Don't skip without good reason — if a topic is clearly inapplicable (e.g. accounts for a personal single-user tool), skip silently and move on.
 
@@ -93,23 +82,28 @@ Conversation rules:
 - Cite their earlier answers ("you said it's just for your family — so login probably isn't critical?").
 - Don't introduce jargon the user hasn't used themselves.
 
-## Step 3 — stack selection
+## Step 3 — fit check (web or not web?)
 
-Once you understand the idea, pick the best-fit stack. List every file in this skill's `references/` directory, read the frontmatter and "When to pick this stack" section of each. Match the user's idea to exactly one reference.
+By now you know what the user wants. Check whether it's a web app — anything that could sensibly run in a browser on localhost and later behind a URL. Trackers, managers, dashboards, forms, small CRMs, blogs, checklists, internal tools, lightweight games, even simple admin panels for an existing business — all fit.
 
-Heuristics:
-- **Web app (CRUD, tracker, manager, blog, internal tool) → `django-htmx`.** This is the default. When in doubt, pick this.
-- **SPA interactivity: drag-and-drop between columns, inline-edit tables, live collab, real-time feel → `nextjs`.**
-- **Mobile, iOS/Android, offline-first, uses camera/GPS/push → `flutter`.**
-- **Desktop, offline, tray icon, reads/writes local files → `tauri`.**
-- **CLI, terminal utility, no UI → `cli-python`.**
-- **Single-screen lightweight web tool, no admin, no auth → `fastapi-htmx`.** If the user talks about an admin or multiple user-editable models, prefer `django-htmx`.
-- **2D browser game → `game-web`.**
+If the idea doesn't obviously fit a web browser, try to reframe it as a web MVP first. Vibe coders often describe ideas in native terms because that's what they see on their phone, but the underlying *job* usually works fine in a web UI:
 
-Commit to the pick — do not ask the user "which stack?". Do not negotiate. If you picked wrong, the user can run `/sdd-idea` again with the «Начать заново» option.
+- **"Mobile app for X"** → a web app the user opens on their phone. Add `### Будущее расширение` notes about installing as a PWA, or wrapping with Capacitor / rewriting in Flutter later, once the core value is proven.
+- **"Desktop app for X"** → a web app run locally via Docker, or hosted somewhere private. Note a future Tauri wrap if the user really wants a binary.
+- **"CLI utility"** → if the utility is really a data entry + report flow, a web form + a results page covers it. If it's truly a pipeline or a filter that fits `cat in | tool | out`, SDD isn't the right tool.
+- **"A game"** → only viable if it's simple enough to live in a Django template with a bit of JS/htmx. Anything requiring a game engine (Phaser, Unity, canvas physics) is out of scope.
 
-Log one short Russian sentence telling the user what stack was picked and one sentence why. Example:
-> Стек: Django + htmx. Это обычное веб-приложение — трекер с формами и списками; Django закроет админку и данные без лишней возни.
+Reframing rules:
+- Always try the reframe before declining. Most "mobile" ideas work as mobile-friendly web.
+- Confirm the reframe with the user through `AskUserQuestion` before proceeding — don't silently pivot their idea. Example phrasing: «Как раз под твою задачу удобно начать с веба — открывается с телефона без установки, данные на сервере, потом можно обернуть в мобилку. Подойдёт такой путь?»
+- If the user insists on a native-only build (no web MVP acceptable) or the idea is genuinely beyond SDD's scope (a 3D game, a kernel module, a trading bot with hard latency budgets), tell them plainly:
+
+  > Такую идею SDD4beginners не закроет — здесь мы собираем веб-приложения на Django. Поищи другой инструмент под этот стек или вернись, если захочешь веб-версию.
+
+  Then exit.
+
+When the idea fits (directly or after a reframe), log one short Russian sentence telling the user what's next. Example:
+> Окей, собираем веб-приложение на Django + htmx. С телефона откроется нормально, а если потом захочется «мобилки» — завернём как PWA.
 
 Then go to Step 4.
 
@@ -121,7 +115,7 @@ Use `AskUserQuestion` to confirm. Example phrasing: «Вот что предла
 
 ## Step 5 — write PROJECT.md
 
-Inline the chosen reference's recipe into PROJECT.md so the file is self-contained. `/sdd-impl` and `/sdd-feature` read only PROJECT.md — they must never open a reference file at runtime.
+Inline the django-htmx recipe into PROJECT.md so the file is self-contained. `/sdd-impl` and `/sdd-feature` read only PROJECT.md — they must never open a reference file at runtime.
 
 Structure — Russian headings, Russian prose inside each section (translate from the English reference as needed), language-neutral code blocks verbatim. Include only sections that are relevant; skip a section if it doesn't apply (e.g. `## Аккаунты и доступ` for a personal single-user tool).
 
@@ -149,15 +143,14 @@ Structure — Russian headings, Russian prose inside each section (translate fro
     Things not yet decided.
 
     ## Стек
-    **name:** <stack id from reference frontmatter>
-    **impl_mode:** <scaffold | handoff>
-    **summary:** <Russian one-liner, translated from the reference `summary`>
+    **name:** django-htmx
+    **summary:** Django 5 + htmx + SQLite + Pico.css в Docker. Серверный рендеринг, формы, админка, SQLite из коробки.
 
     ### Технологии (минимум для MVP)
     <list, translated from the reference "Minimal MVP tech" section>
 
     ### Структура проекта (Фаза 1)
-    <full Phase 1 recipe — code blocks verbatim, prose translated to Russian>
+    <inline the django-htmx Phase 1 recipe verbatim — see "How to fill Структура проекта (Фаза 1)" below>
 
     ### Как тестировать
     <translated from reference "How to test">
@@ -165,13 +158,20 @@ Structure — Russian headings, Russian prose inside each section (translate fro
     ### Чего не тащить
     <translated from reference "Do not bring in">
 
+    ### Будущее расширение (опционально)
+    <only include this subsection if the user's idea or docs explicitly mentioned growth beyond the
+    django-htmx MVP defaults — e.g. Postgres instead of SQLite, Redis for queues, a mobile wrap,
+    a desktop binary. Two or three friendly Russian bullets, each mapping a future need to a
+    likely later phase. Don't add this just to look thorough — only when the user actually hinted
+    at growth beyond MVP.>
+
     ## Фазы
 
     ### Фаза 1 — Настройка проекта
     **Цель:** <one Russian sentence>
     **Усилие:** Low
 
-    - [ ] <tasks pulled from the chosen reference's Phase 1 recipe, translated to Russian>
+    - [ ] <tasks pulled from the django-htmx Phase 1 recipe, translated to Russian>
     - [ ] ...
     - [ ] Проверка: <concrete checkpoint — e.g. «http://localhost:5000 открывается и показывает <Название проекта>»>
 
@@ -192,24 +192,28 @@ Structure — Russian headings, Russian prose inside each section (translate fro
     **Цель:** приложение доступно по публичному URL.
     **Усилие:** Low
 
-    - [ ] <deploy tasks — pick target appropriate for the stack>
+    - [ ] <deploy tasks — Render.com or Fly.io>
     - [ ] Проверка: приложение открывается по публичной ссылке.
 
     **Тесты Фазы N:** все предыдущие чекпоинты ещё зелёные.
 
-All prose inside `PROJECT.md` is Russian. Code blocks (Dockerfile, package.json, etc.) stay as-is. `## Стек` subsection titles (`Технологии`, `Структура проекта`, `Как тестировать`, `Чего не тащить`) are always Russian.
+All prose inside `PROJECT.md` is Russian. Code blocks (Dockerfile, `settings.py` snippets, etc.) stay as-is. `## Стек` subsection titles (`Технологии`, `Структура проекта`, `Как тестировать`, `Чего не тащить`) are always Russian.
+
+### How to fill `### Структура проекта (Фаза 1)`
+
+Inline `references/django-htmx.md`'s Phase 1 recipe verbatim: every code block, every target path, every command. `/sdd-impl` writes the contents of those code blocks to disk byte-for-byte, so if they aren't in PROJECT.md the build won't work. Prose around the code blocks is translated to Russian; the code itself stays verbatim.
 
 ### Phase construction rules
 
 - **Target size:** 4–7 phases for a typical idea. Up to 8 when there are many features.
-- **Phase 1 is fixed by the chosen stack reference.** Translate its "Phase 1 recipe" steps into tasks. For `scaffold` stacks this is a boot-the-container phase; for `handoff` stacks it's a concrete "initialize the framework, make the first test pass" phase.
+- **Phase 1 is fixed by the stack reference.** Translate its "Phase 1 recipe" steps into tasks — this is a boot-the-container phase: Docker up, Django migrate, home page live.
 - **Phase 2 is the core loop.** One end-to-end slice through the most important action. Recipe tracker: "add recipe → see in list". Budget tracker: "enter expense → see balance". Everything else comes later.
 - **Vertical slices, not horizontal layers.** Each phase touches the whole stack (model + view + template + tests) for one feature. Do not do "all models first, then all views".
 - **Each phase ends in a runnable state.** No "half a feature now, half next time".
-- **Last phase is always polish + deploy.** Stack-specific target: Django/Next.js/FastAPI → Render.com or Fly.io; Flutter → publish on internal track + TestFlight; Tauri → build artifacts + GitHub Releases; Phaser → deploy to static hosting; CLI → publish to PyPI (optional).
+- **Last phase is always polish + deploy.** Target: Render.com or Fly.io.
 - **Checkpoints are observable, not "it works".** Not "user sees the list" but "open /recipes, click Add, type 'Borscht', submit — should appear on home page".
 - **Effort:** Low / Medium / High. Not hours — vibe coders can't calibrate hours.
-- **Tests are mandatory.** Every phase has a "Тесты Фазы N" section listing what must be covered by unit tests. 100% coverage on changed files (framework-appropriate definition, pulled from the reference) is enforced by `/sdd-impl` for `scaffold` stacks; for `handoff` stacks it's a rule documented in PROJECT.md for Claude Code to follow manually.
+- **Tests are mandatory.** Every phase has a "Тесты Фазы N" section listing what must be covered by unit tests. 100% coverage on changed files (Django `core/*.py`, excluding migrations/tests/admin/apps) is enforced by `/sdd-impl`.
 
 ### Coverage self-check
 
@@ -217,27 +221,24 @@ After writing `PROJECT.md`, mentally walk each MVP item and each "add later" ite
 
 ## Step 6 — offer next steps
 
-Show a summary: chosen stack, phase titles, and one-line checkpoints. Then `AskUserQuestion` with three options:
+Show a summary: phase titles and one-line checkpoints. Then `AskUserQuestion` with three options:
 
 1. Label «Продолжим интервью» → return to Step 2, focused on what the user wants to deepen ("the data model", "feature X", "edge cases"). After the follow-up, rewrite `PROJECT.md` (old version goes to `PROJECT.v<N>.md`).
 2. Label «Поменять план» → no re-interview; user says what to change (split a phase, merge two, reprioritize, move something to "later"), you apply it, rewrite `PROJECT.md` with backup.
-3. Label «Поехали, строим!» → the plan is final. Print this message to the user (adapt to stack impl_mode):
+3. Label «Поехали, строим!» → the plan is final. Print:
 
-   For `scaffold` stacks:
    > Готово. План — в `PROJECT.md`. Запусти `/sdd-impl` — построю Фазу 1 и подниму приложение в браузере.
-
-   For `handoff` stacks:
-   > Готово. План — в `PROJECT.md`, там же вся инструкция по сборке под этот стек. Запусти `/sdd-impl` — скажу, что дальше строить вручную (SDD для этого стека scaffold не автоматизирует, но инструкция уже у тебя).
 
 Options 1 and 2 can be chosen as many times as the user wants — versioning protects previous drafts. **Only «Поехали, строим!» hands off control.**
 
 ## What not to do
 
-- Do not run the doctor. Environment doesn't matter at the planning stage.
+- Do not touch the host environment — no installs, no version checks, no toolchain probes. Environment readiness lives in `/sdd-impl`; planning shouldn't care.
 - Do not create any file other than `PROJECT.md` and its `PROJECT.v<N>.md` backups.
 - Do not try to do Phase 1's tasks — that's `/sdd-impl`'s job.
-- Do not discuss framework, library, or hosting choices with the user. SDD picks; the user ships.
-- Do not refuse an idea because it doesn't fit Django. Pick a different reference instead.
+- Do not discuss framework, library, or hosting choices with the user. SDD ships one stack; the user ships the app.
+- Do not silently pivot a non-web idea into a web app — confirm the reframe through `AskUserQuestion` (see Step 3).
+- Do not silently extend the stack with extras the reference doesn't list (no Postgres, no Redis, no Tailwind, no Celery in Phase 1) just because the user's docs mentioned them. Production-grade infra belongs in `### Будущее расширение` and later phases.
 - Do not write «ТЫ ДОЛЖЕН» / "YOU MUST" in the plan — the tone is bad for vibe coders.
 - Do not ask all-or-nothing questions — always give options.
 - Do not draw ASCII diagrams or flowcharts in `PROJECT.md` unless the user explicitly asks.
@@ -247,12 +248,12 @@ Options 1 and 2 can be chosen as many times as the user wants — versioning pro
 > «Хочу сделать приложение для учёта книг, которые читаю. Чтобы можно было ставить
 > оценку, писать короткие заметки, и видеть статистику по месяцам.»
 
-Flow: interview → pick `django-htmx` → MVP proposal → `PROJECT.md` with ~5 phases → handoff to `/sdd-impl`.
+Flow: interview → Phase 3 fit check says "web, easy" → MVP proposal → `PROJECT.md` with ~5 phases → user runs `/sdd-impl`.
 
-> «Канбан для команды на 5 человек с drag-and-drop карточек между колонками.»
+> «Хочу мобильное приложение, чтобы в зале отмечать подходы и веса.»
 
-Flow: interview → pick `nextjs` → MVP proposal → `PROJECT.md` with ~5 phases → handoff to `/sdd-impl`.
+Flow: interview → fit check reframes as "веб-трекер, открывается с телефона, позже можно обернуть как PWA" → `AskUserQuestion` confirms the reframe → MVP proposal → `PROJECT.md` with ~5 phases and a `### Будущее расширение` note about mobile wrapping → user runs `/sdd-impl`.
 
-> «iOS-приложение чтобы в зале отмечать подходы и веса.»
+> «Хочу игру 3D про гонки на Unreal Engine.»
 
-Flow: interview → pick `flutter` → MVP proposal → `PROJECT.md` with ~5 phases, impl_mode handoff → `/sdd-impl` will tell the user Claude Code continues from PROJECT.md manually.
+Flow: fit check can't reframe — this isn't a web job. Tell the user SDD4beginners doesn't cover it and exit without writing PROJECT.md.

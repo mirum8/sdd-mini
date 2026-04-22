@@ -24,7 +24,7 @@ A vibe coder doesn't know about `git reset --hard` and shouldn't have to. Someti
 
 ### 1. Sanity check git
 
-`git revert` needs git + a repo. Don't run the full doctor — just:
+`git revert` needs git + a repo. Just check that:
 
     git rev-parse --is-inside-work-tree >/dev/null 2>&1
 
@@ -93,7 +93,7 @@ If the phase was marked `⚠` (skipped tasks from a previous run), strip the `�
 
     docker compose ps --status running | grep -q app && docker compose restart app
 
-Swallow errors silently if Docker is unavailable — the user will see the doctor next time they run `/sdd-impl`.
+Swallow errors silently if Docker is unavailable — `/sdd-impl` will deal with the environment when the user next builds a phase.
 
 ### 9. Report to the user in Russian
 

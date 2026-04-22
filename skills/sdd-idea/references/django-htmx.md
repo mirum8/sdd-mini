@@ -1,12 +1,11 @@
 ---
 name: django-htmx
 summary: Django 5 + htmx + SQLite + Pico.css in Docker. Server-rendered web apps — trackers, managers, small internal tools.
-impl_mode: scaffold
 ---
 
-## When to pick this stack
+## What this stack covers
 
-This is SDD's default. Pick it if the idea is an ordinary web app: a tracker for something, a recipe/budget/notes manager, a simple blog, a checklist, an internal tool. One database, forms, lists, filters, admin for the owner. Everything flows through plain HTTP requests; interactivity comes from htmx (no React, no JS build step). Sized for a single user or a small group, not millions.
+The only stack SDD ships. It targets ordinary web apps: trackers, recipe/budget/notes managers, a simple blog, a checklist, an internal tool. One database, forms, lists, filters, admin for the owner. Everything flows through plain HTTP requests; interactivity comes from htmx (no React, no JS build step). Sized for a single user or a small group, not millions.
 
 ## Minimal MVP tech
 
@@ -106,7 +105,7 @@ CMD ["python", "manage.py", "runserver", "0.0.0.0:5000"]
 
 ### `docker-compose.yml`
 
-The port comes from `SDD_PORT`. If the doctor said 5000 is busy, the skill substitutes another. Default: 5000.
+The port comes from `SDD_PORT`. Default: 5000 — `/sdd-impl` substitutes another if it's already in use.
 
 ```yaml
 services:

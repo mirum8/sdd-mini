@@ -45,11 +45,7 @@ If the user rejects the plan, revise it and call `ExitPlanMode` again with the u
 - If missing, print in Russian:
   > Похоже, это не SDD-проект — нет `PROJECT.md`. `/sdd-feature` расширяет существующие проекты. Если начинаешь с нуля — `/sdd-idea`.
   Then stop.
-- **Parse the stack** from PROJECT.md's `## Стек` section — read `name:` and `impl_mode:`. Use the stack name to decide which files to read as "real code":
-  - `django-htmx`: `manage.py`, `<slug>/settings.py`, `<slug>/urls.py`, `core/models.py`, `core/views.py`, `core/urls.py`, `core/admin.py`, filenames in `templates/core/` and `core/tests/`.
-  - `nextjs`: `package.json`, `prisma/schema.prisma`, `src/app/` tree, `src/lib/` utilities, filenames in `src/app/**/*.test.*`.
-  - `fastapi-htmx`: `app/main.py`, `app/models.py`, `app/database.py`, filenames in `app/templates/` and `tests/`.
-  - Handoff stacks: read whatever the recipe in PROJECT.md's `### Структура проекта` section lists as the project's main folders.
+- **Confirm the stack** from PROJECT.md's `## Стек` section — `name:` should be `django-htmx` (the only stack SDD ships). Read these files as "real code": `manage.py`, `<slug>/settings.py`, `<slug>/urls.py`, `core/models.py`, `core/views.py`, `core/urls.py`, `core/admin.py`, filenames in `templates/core/` and `core/tests/`.
 - Goal: know what's **actually** in the app, not just what was planned.
 - Parse `PROJECT.md` into three groups:
   - **Completed phases:** all tasks `- [x]`.

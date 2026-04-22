@@ -62,8 +62,7 @@ Both sub-modes share a common tail: tests + 100% coverage → verification → r
 6. **Dirty git (feature mode).** If `git status --porcelain` is non-empty, `AskUserQuestion`:
    - Label «Продолжить с первой незакрытой задачи» → leave changes as-is, continue.
    - Label «Откатить изменения и начать фазу заново» → run `git checkout -- .` (only after explicit confirmation), then continue.
-7. **Snapshot the plan.** If this phase hasn't been snapshotted yet, copy `PROJECT.md` → `PROJECT.v<N>.md` (N = next free integer). Snapshot happens once per phase, not per run. Indicator that this run is the start of a phase: none of the phase's tasks are marked `- [x]` yet.
-8. **Doctor — setup mode only.** If this is setup mode (no project on disk yet — see detection above), run `"$HOME/.claude/skills/sdd-impl/scripts/sdd-doctor.sh"` now. Look at the last line of stdout:
+7. **Doctor — setup mode only.** If this is setup mode (no project on disk yet — see detection above), run `"$HOME/.claude/skills/sdd-impl/scripts/sdd-doctor.sh"` now. Look at the last line of stdout:
    - `SDD_DOCTOR: ok` or `SDD_DOCTOR: warnings=<N>` → continue.
    - `SDD_DOCTOR: blockers=<N>` → `AskUserQuestion` (one question, Russian, informal "ты"): «Доктор нашёл, что для сборки не хватает нескольких инструментов. Попробовать поставить их автоматически? На macOS через Homebrew (если он есть), иначе — откроется системный диалог установки. Может попросить sudo-пароль.»
       - «Да, поставь» → run `"$HOME/.claude/skills/sdd-impl/scripts/sdd-doctor.sh" --install`. Look at the new last line: if `ok` or `warnings=<N>` → continue; if still `blockers=<N>` → surface the (post-install) "Сначала почини вот это" block from the doctor's output and exit.

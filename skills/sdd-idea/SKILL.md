@@ -253,6 +253,14 @@ Show a summary: phase titles and one-line checkpoints. Then `AskUserQuestion` wi
 3. Label «Поехали, строим!» → the plan is final. Print:
 
    > Готово. План — в `PROJECT.md`. Запусти `/sdd-impl` — построю Фазу 1 и подниму приложение в браузере.
+   >
+   > `PROJECT.md` — это твой план: спецификация проекта + фазы с чекбоксами. Можешь открыть и перечитать в любой момент, по нему я и работаю дальше.
+   >
+   > Когда понадобится:
+   > - `/sdd-impl` — собрать следующую фазу (код + тесты + проверка в браузере).
+   > - `/sdd-feature` — добавить новую фичу в план (допишу фазы в конец).
+   > - `/sdd-change` — поменять что-то в плане: переписать раздел спеки, поправить ещё не построенную фазу, или переделать уже готовое поведение.
+   > - `/sdd-undo` — откатить последнюю построенную фазу, если что-то пошло не так.
 
 Options 1 and 2 can be chosen as many times as the user wants — versioning protects previous drafts. **Only «Поехали, строим!» hands off control.**
 

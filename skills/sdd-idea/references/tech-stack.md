@@ -55,7 +55,13 @@ Phase 1 writes all the files below, boots the container, and verifies the home p
         ]
 
 6. Delete `core/tests.py` (use the `core/tests/` package instead).
-7. Build, migrate, create superuser:
+7. Create the `static/` directory so Django doesn't log `staticfiles.W004` on every boot — `STATICFILES_DIRS` points there but Django won't create it automatically:
+
+        mkdir -p static
+        touch static/.gitkeep
+
+   The `.gitkeep` file makes the otherwise-empty directory survive `git clone`.
+8. Build, migrate, create superuser:
 
         docker compose build
         docker compose up -d
@@ -63,7 +69,7 @@ Phase 1 writes all the files below, boots the container, and verifies the home p
         docker compose exec -T app python manage.py createsuperuser --noinput
 
    Superuser credentials come from env (`DJANGO_SUPERUSER_*` in compose → `admin` / `admin@example.com` / `admin`).
-8. UI gate for `templates/core/home.html`: invoke `frontend-design:frontend-design`, pass the project name and the "Что это" paragraph from PROJECT.md. The resulting template must start with `{% extends "core/base.html" %}` and must contain `<h1>{{ project_name }}</h1>` inside `{% block content %}` (otherwise the test fails).
+9. UI gate for `templates/core/home.html`: invoke `frontend-design:frontend-design`, pass the project name and the "Что это" paragraph from PROJECT.md. The resulting template must start with `{% extends "core/base.html" %}` and must contain `<h1>{{ project_name }}</h1>` inside `{% block content %}` (otherwise the test fails).
 
 ### Slug derivation
 

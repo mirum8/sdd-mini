@@ -90,9 +90,15 @@ First check: is there a `PROJECT.md` in cwd already?
   4. Label «Начать заново» → back up `PROJECT.md` → `PROJECT.v<N>.md` (N = next free integer), then continue to Step 2.
 - **If absent:** go to Step 2.
 
-## Step 2 — the interview (8–12 turns)
+## Step 2 — the interview (5–8 turns)
 
-Ask questions through `AskUserQuestion`. 1–3 related questions per turn, each with 2–4 concrete answer options grounded in what the user has said so far.
+Ask questions through `AskUserQuestion`. 1–3 related questions per turn, each with **2–4 concrete options** — the tool hard-fails at 5+. When a topic naturally has more answers (six possible field bundles, a long list of features), wrap them into coherent scope bundles instead of a flat list.
+
+> Bad: six checkboxes — «название», «оценка», «год», «жанр», «дата», «заметка». Tool errors out, and the user picks blindly anyway.
+>
+> Good: three options — «Минимум» (название + оценка + дата), «Стандарт» (+ год + жанр + заметка), «Расширенный» (+ свободные теги, режиссёр, формат). The user picks a coherent shape, not a checklist of fields.
+
+**Mark the recommended option.** When one option is genuinely the better starting point for this user (single-user mode for a personal tool, the standard field set, a simpler theme, declining a heavy integration in MVP), place it **first** and append «(Рекомендуется)» to the label. One «(Рекомендуется)» per question max — it's a real signal, not decoration. The user is free to overrule; the marker just removes the «what would *you* pick?» friction.
 
 Goal: build a clear picture of *what* we're building and *for whom*. **Never ask about the stack** — there's only one, and the user doesn't pick it.
 
@@ -142,9 +148,24 @@ Then go to Step 4.
 
 ## Step 4 — propose the MVP
 
-Formulate the **minimum version that still solves the core problem**. Not "everything we discussed" — "without which it wouldn't work at all".
+Formulate the **minimum version that still solves the core problem**. Not "everything we discussed" — "without which it wouldn't work at all". List included features in 2–4 short lines, plus a separate short list of nice-to-haves you parked.
 
-Use `AskUserQuestion` to confirm. Example phrasing: «Вот что предлагаю собрать первым — [2–4 lines]. Ок или что-то убрать/добавить?» This is the single approval gate before writing the plan.
+Confirm via `AskUserQuestion` with three options:
+
+- «Поехали, как есть **(Рекомендуется)**» → continue to Step 4.5.
+- «Урезать ещё» → user says what to drop; revise and re-confirm.
+- «Добавить из отложенных» → at least one nice-to-have moves into MVP.
+
+If the user picks «Добавить из отложенных», immediately ask a follow-up `AskUserQuestion` (`multiSelect: true`) listing each parked nice-to-have as its own option, so the user picks **explicitly** what moves into MVP. Don't guess — guessing is how a clean 5-phase plan quietly turns into 8.
+
+## Step 4.5 — pre-write summary
+
+Before writing PROJECT.md, summarise the decisions back to the user. Five to seven Russian bullets covering: что строим, для кого, главные сценарии, состав MVP, что отложено, нестандартные риски (если есть). Then one `AskUserQuestion`:
+
+- «Всё верно, пиши план **(Рекомендуется)**» → continue to Step 5.
+- «Кое-что не так» → user corrects (one or two things); update the summary and re-confirm.
+
+Why this gate exists: by Step 5 you're holding 5–8 turns of context. A short recap catches drift between «что юзер сказал в первом круге» and «что я собираюсь записать» before it lands on disk. Skip it and you'll write a plan that quietly contradicts the early answers, and the user will only notice when they read PROJECT.md cold.
 
 ## Step 5 — write PROJECT.md and copy tech-stack.md
 
@@ -155,10 +176,14 @@ Structure of `PROJECT.md` — Russian headings, Russian prose inside each sectio
     # <Название проекта>
 
     ## Что это
-    2–3 sentences: what it does, for whom, why it matters.
+    Two short sentences. First — what the app does (the user-facing job, not the tech).
+    Second — who it's for (audience and rough scale). No feature list here; features
+    belong in «Как это работает».
 
     ## Как это работает
-    Main user flows — concrete, step by step, not abstract.
+    Numbered user flows. Concrete scenes in order: «открываешь главную → видишь … →
+    кликаешь … → попадаешь …». Don't re-state features already named in «Что это»;
+    show them happening. If a flow branches, branch the numbering — don't summarise.
 
     ## Данные
     What gets stored, how it's linked (only if relevant).
@@ -173,18 +198,27 @@ Structure of `PROJECT.md` — Russian headings, Russian prose inside each sectio
     What happens when things go wrong.
 
     ## Открытые вопросы
-    Things not yet decided.
+    Only questions the user actually deferred during the interview («не знаю», «потом
+    решим», «если успеем», «опционально»). Don't invent questions to look thorough —
+    if the user didn't deflect on a topic, it's not open. If nothing was deferred, omit
+    the section entirely.
 
     ## Стек
     **name:** django-htmx
     **summary:** Django 5 + htmx + SQLite + Pico.css в Docker. Страницы собираются на сервере, есть формы, готовая админка, встроенная база данных.
 
     ### Будущее расширение (опционально)
-    <only include this subsection if the user's idea or docs explicitly mentioned growth beyond the
-    django-htmx MVP defaults — e.g. Postgres instead of SQLite, Redis for queues, a mobile wrap,
-    a desktop binary. Two or three friendly Russian bullets, each mapping a future need to a
-    likely later phase. Don't add this just to look thorough — only when the user actually hinted
-    at growth beyond MVP.>
+    Include this subsection only when one of these concrete triggers fired during the
+    interview — not just to look thorough:
+    - Public service / many users → Postgres вместо SQLite, регулярные бэкапы, CDN для статики.
+    - User mentioned phone use → PWA-обёртка (ставится на телефон в один клик, работает офлайн).
+    - User mentioned desktop preference → Tauri-обёртка (бинарник, который запускается локально).
+    - User mentioned imports/exports beyond CSV → API или вебхуки.
+    - User mentioned scale-out / heavy jobs → фоновые задачи (Django-Q / RQ), Redis-кеш.
+    - User mentioned community / social → комментарии, подписки между профилями.
+
+    Two or three friendly Russian bullets max, each pointing a future need at a likely
+    later phase or technology. Pick triggers that actually came up.
 
     ## Фазы
 
@@ -243,6 +277,14 @@ If `cp` isn't convenient, read the source with `Read` and write the destination 
 ### Coverage self-check
 
 After writing `PROJECT.md`, mentally walk each MVP item and each "add later" item: **every one must be a task in at least one phase.** If something isn't covered, add a task — don't save a plan with a hole.
+
+### Phase count self-check
+
+Target: 4–7 phases. 8 is the upper limit reserved for genuinely many features. After the plan is laid out, count the phases. If you're at 8 or above, look hard for merges — two adjacent CRUD-ish phases often collapse into one «add + edit + delete + list», search and stats often share a list page so they share a phase. If after honest looking the count is still ≥8, surface that to the user before Step 6 with one short message:
+
+> Получилось <N> фаз — это много, но не критично. Хочешь, попробую слить две — назови, какие выглядят как кандидаты, или предложу варианты сам.
+
+Don't auto-merge — the user might insist on the granularity. But don't pretend an 8-phase plan has the same shape as a 5-phase one either.
 
 ## Step 6 — offer next steps
 

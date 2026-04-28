@@ -67,14 +67,14 @@ If a user's idea isn't naturally a web app, `/sdd-idea` tries to reframe it (mob
 
 It does **not** run on every `/sdd-impl` phase, in `/sdd-feature`, or in `/sdd-undo`. Those skills either don't touch the environment (`/sdd-feature` writes markdown; `/sdd-undo` does a git revert) or surface real errors from the real commands (`docker compose` failures) rather than preflight-checking every time. If a later invocation actually hits an environment issue, let the real command fail with its real message, then point the user at the doctor as a diagnostic.
 
-**Optional `--install` mode.** The doctor also accepts `--install`: run checks, attempt macOS fixes (Homebrew for git / Docker / compose, `open -a Docker` for the daemon), re-run checks, emit the marker based on the post-install state. Only `/sdd-impl` setup mode calls it, and only after explicit user consent via `AskUserQuestion`. Linux `--install` is a no-op with an info line — auto-fix is macOS-only for now. No-flag behavior is unchanged, so `install.sh`'s verification still works exactly as before.
+**Optional `--install` mode.** The doctor also accepts `--install`: run checks, attempt macOS fixes (Homebrew for git / Docker / compose / agent-browser, `open -a Docker` for the daemon), re-run checks, emit the marker based on the post-install state. Only `/sdd-impl` setup mode calls it, and only after explicit user consent via `AskUserQuestion`. Linux `--install` is a no-op with an info line — auto-fix is macOS-only for now. No-flag behavior is unchanged, so `install.sh`'s verification still works exactly as before. The install pass only fires when `blockers > 0`; if the only thing missing is agent-browser (a warning), the user sees the fix line and runs it themselves.
 
 **Preserve these invariants so the parse-on-install still works:**
 - Exit codes: `0` all green, `1` blockers, `2` warnings only.
 - Last stdout line is exactly `SDD_DOCTOR: ok` | `SDD_DOCTOR: blockers=<N>` | `SDD_DOCTOR: warnings=<N>`. The install (and any skill that does invoke it) greps for this — don't break the format.
 - Frontend-design plugin is detected by grepping `"frontend-design@"` in `$SDD_PLUGINS_JSON` (default `~/.claude/plugins/installed_plugins.json`).
 - Port is configurable via `SDD_PORT` (default `5000`).
-- The doctor checks Docker + git + disk + port + plugin. That's the universal baseline for SDD's one stack.
+- The doctor checks Docker + git + disk + port + frontend-design plugin + agent-browser. agent-browser is a **warning**, not a blocker — `/sdd-impl` falls back to extended curl checks if it's missing. Plugin stays a blocker (UI quality gate). That's the universal baseline for SDD's one stack.
 
 ### Installer invariants
 

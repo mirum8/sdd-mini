@@ -120,6 +120,21 @@ check_plugin() {
   fi
 }
 
+# warning — /sdd-impl gracefully degrades to extended curl checks if missing.
+check_agent_browser() {
+  if command -v agent-browser >/dev/null 2>&1; then
+    ok "agent-browser установлен"
+  else
+    warn "agent-browser не установлен" \
+         "Без него /sdd-impl не сможет визуально проверить фазу — ограничится curl-чеком.
+   Поставь одной из команд:
+       npm install -g agent-browser
+       brew install agent-browser
+   Затем один раз:    agent-browser install
+   Подробности:       https://agent-browser.dev/"
+  fi
+}
+
 check_cwd() {
   local probe=".sdd_doctor_write_$$"
   if touch "./$probe" 2>/dev/null; then
@@ -184,6 +199,7 @@ run_checks() {
   check_compose_v2
   check_git
   check_plugin
+  check_agent_browser
   check_cwd
   check_disk
   check_git_repo
@@ -230,6 +246,27 @@ install_compose_macos() {
   fi
 }
 
+install_agent_browser_macos() {
+  command -v agent-browser >/dev/null 2>&1 && return 0
+  if have_brew; then
+    say_step "ставлю agent-browser через Homebrew"
+    brew install agent-browser || true
+  elif command -v npm >/dev/null 2>&1; then
+    say_step "ставлю agent-browser через npm"
+    npm install -g agent-browser || true
+  else
+    echo "→ agent-browser нужно поставить вручную (нет ни Homebrew, ни npm):"
+    echo "     npm install -g agent-browser    # сначала Node.js: https://nodejs.org/"
+    echo "     brew install agent-browser      # сначала Homebrew: https://brew.sh/"
+    echo "   Подробности: https://agent-browser.dev/"
+    return 0
+  fi
+  if command -v agent-browser >/dev/null 2>&1; then
+    say_step "agent-browser install — скачиваю встроенный Chrome"
+    agent-browser install >/dev/null 2>&1 || true
+  fi
+}
+
 start_docker_daemon_macos() {
   command -v docker >/dev/null 2>&1 || return 0
   docker info >/dev/null 2>&1 && return 0
@@ -258,6 +295,7 @@ run_installs() {
   install_docker_macos
   start_docker_daemon_macos
   install_compose_macos
+  install_agent_browser_macos
 }
 
 usage() {
